@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     github_token: str | None = None
     ai_api_key: str | None = None
     ai_base_url: str | None = None
-    ai_model: str = "gpt-4o-mini"
+    ai_model: str = "openai/gpt-oss-20b"
     max_repo_size_mb: int = 40
     max_files: int = 2500
     max_file_bytes: int = 750_000

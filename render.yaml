@@ -16,5 +16,5 @@ services:
       - key: AI_BASE_URL
         sync: false
       - key: AI_MODEL
-        value: gpt-4o-mini
+        value: openai/gpt-oss-20b
     healthCheckPath: /health
