@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #070a12;
+  --panel: #0c111d;
+  --panel-2: #101827;
+  --line: rgba(148,163,184,.13);
+  --muted: #8792a6;
+  --text: #eef2ff;
+  --accent: #7c6cff;
+  --accent-2: #22d3ee;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; background: radial-gradient(circle at 70% -10%, rgba(124,108,255,.18), transparent 34%), var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+a { color: inherit; text-decoration: none; }
+button, input, textarea { font: inherit; }
+
+.grid-bg { background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size: 32px 32px; }
+.glass { background: rgba(12,17,29,.72); backdrop-filter: blur(18px); border: 1px solid var(--line); }
+.card { background: linear-gradient(145deg, rgba(17,24,39,.92), rgba(8,12,22,.92)); border: 1px solid var(--line); border-radius: 18px; }
+.muted { color: var(--muted); }
+
+@keyframes pulseGlow { 0%,100% { opacity:.45 } 50% { opacity:1 } }
+.animate-glow { animation: pulseGlow 1.8s ease-in-out infinite; }
+
+
+
+
+/* =========================================================
+   RepoLens - React Flow dark theme
+   ========================================================= */
+
+.architecture-map .react-flow__controls {
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.architecture-map .react-flow__controls-button {
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+
+  background: #0f172a;
+  border: none;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+
+  color: #cbd5e1;
+}
+
+.architecture-map .react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.architecture-map .react-flow__controls-button:hover {
+  background: #17122d;
+}
+
+.architecture-map .react-flow__controls-button svg {
+  fill: currentColor;
+  stroke: currentColor;
+  color: #cbd5e1;
+}
+
+/* MiniMap */
+
+.architecture-map .react-flow__minimap {
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.architecture-map .react-flow__minimap-mask {
+  fill: rgba(8, 12, 22, 0.72);
+}
+
+.architecture-map .react-flow__minimap-node {
+  fill: #7c6cff;
+  stroke: rgba(255, 255, 255, 0.15);
+}
+
+/* React Flow attribution */
+
+.architecture-map .react-flow__attribution {
+  background: rgba(8, 12, 22, 0.85);
+  color: #64748b;
+  border-radius: 6px 0 0 0;
+}
+
+.architecture-map .react-flow__attribution a {
+  color: #94a3b8;
+}
