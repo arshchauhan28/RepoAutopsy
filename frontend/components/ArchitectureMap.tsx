@@ -1,13 +1,10 @@
 "use client";
 
 import { Background, Controls, ReactFlow } from "@xyflow/react";
-
 import "@xyflow/react/dist/style.css";
 
 export function ArchitectureMap({ architecture }: { architecture: any }) {
-  const folders = (architecture?.nodes || []).filter(
-    (n: any) => n.id !== "root",
-  );
+  const folders = (architecture?.nodes || []).filter((n: any) => n.id !== "root");
 
   const nodes = [
     {
@@ -15,57 +12,31 @@ export function ArchitectureMap({ architecture }: { architecture: any }) {
       position: { x: 300, y: 30 },
       data: { label: "Repository" },
       style: {
-        background: "#17122d",
-        color: "#ffffff",
-        border: "1px solid #7c6cff",
-        borderRadius: 14,
-        padding: 12,
-        width: 150,
+        background: "#17181b", color: "#f0ede7", border: "1px solid #f2b84b",
+        borderRadius: 8, padding: 11, width: 150,
+        boxShadow: "0 8px 25px rgba(0,0,0,.25)",
       },
     },
-
     ...folders.map((node: any, i: number) => ({
       id: node.id,
-      position: {
-        x: 60 + (i % 4) * 190,
-        y: 150 + Math.floor(i / 4) * 110,
-      },
-      data: {
-        label: `${node.label} · ${node.files}`,
-      },
+      position: { x: 60 + (i % 4) * 190, y: 150 + Math.floor(i / 4) * 110 },
+      data: { label: `${node.label} · ${node.files}` },
       style: {
-        background: "#0e1727",
-        color: "#cbd5e1",
-        border: "1px solid rgba(148,163,184,.18)",
-        borderRadius: 12,
-        padding: 10,
-        width: 155,
+        background: "#101316", color: "#c8c4bc", border: "1px solid rgba(255,255,255,.12)",
+        borderRadius: 7, padding: 10, width: 155,
       },
     })),
   ];
 
   const edges = (architecture?.edges || []).map((e: any, i: number) => ({
-    ...e,
-    id: `edge-${i}`,
-    animated: true,
-    style: {
-      stroke: "#64748b",
-      strokeWidth: 1.5,
-    },
+    ...e, id: `edge-${i}`, animated: true,
+    style: { stroke: "#6d6961", strokeWidth: 1.4 },
   }));
 
   return (
-    <div className="architecture-map h-[420px] overflow-hidden rounded-2xl border border-white/10 bg-[#080c16]">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        fitView
-        proOptions={{
-          hideAttribution: false,
-        }}
-      >
-        <Background color="#1e293b" gap={28} />
-
+    <div className="architecture-map h-[340px] overflow-hidden rounded-xl border border-white/[.09] bg-[#080a0c] sm:h-[420px]">
+      <ReactFlow nodes={nodes} edges={edges} fitView proOptions={{ hideAttribution: false }}>
+        <Background color="#202327" gap={28} />
         <Controls className="repolens-controls" />
       </ReactFlow>
     </div>

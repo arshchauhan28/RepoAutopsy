@@ -2,8 +2,14 @@ import Link from 'next/link'
 import { ScanSearch } from 'lucide-react'
 
 export function Brand() {
-  return <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-    <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 text-white shadow-lg shadow-violet-500/20"><ScanSearch size={18}/></span>
-    <span>RepoAutopsy</span>
-  </Link>
+  return (
+    <Link href="/" className="group flex min-w-0 items-center gap-2.5">
+      <span className="grid h-8 w-8 shrink-0 place-items-center border border-white/[.12] bg-[#111418] text-amber-400 transition duration-200 group-hover:border-amber-400/30 group-hover:bg-[#15181d]">
+        <ScanSearch size={16} />
+      </span>
+      <span className="truncate font-mono text-[12px] font-semibold tracking-[.08em] text-[#e8e6e1] sm:text-[13px]">
+        REPOAUTOPSY
+      </span>
+    </Link>
+  )
 }
