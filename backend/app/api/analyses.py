@@ -47,3 +47,16 @@ def get_files(analysis_id: str, db: Session = Depends(get_db)):
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
     return {"files": analysis.file_tree or []}
+
+
+@router.post("/{analysis_id}/rerun", response_model=AnalysisOut, status_code=202)
+def rerun_analysis(analysis_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    analysis = db.get(Analysis, analysis_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    analysis.status = "queued"
+    analysis.error = None
+    db.commit()
+    db.refresh(analysis)
+    background_tasks.add_task(run_analysis_job, analysis.id)
+    return analysis

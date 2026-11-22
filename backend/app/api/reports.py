@@ -12,13 +12,35 @@ def get_report(analysis_id: str, db: Session = Depends(get_db)):
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
     latest = sorted(analysis.interviews, key=lambda x: x.created_at, reverse=True)[0] if analysis.interviews else None
+    ai_data = analysis.ai_insights or {}
+    recommendations = ai_data.get("recommendations", ai_data.get("top_recommendations", []))
+
     return {
         "repository": {"owner": analysis.owner, "name": analysis.repo_name, "url": analysis.github_url},
         "summary": analysis.summary,
         "metrics": analysis.metrics,
         "architecture": analysis.architecture,
         "ai_insights": analysis.ai_insights,
-        "findings": [{"category": f.category, "severity": f.severity, "title": f.title, "description": f.description, "file_path": f.file_path, "line": f.line, "recommendation": f.recommendation} for f in analysis.findings],
+        "briefing": ai_data,
+        "recommendations": recommendations,
+        "findings": [
+            {
+                "id": f.id,
+                "category": f.category,
+                "severity": f.severity,
+                "confidence": getattr(f, "confidence", "high"),
+                "title": f.title,
+                "description": f.description,
+                "file_path": f.file_path,
+                "line": f.line,
+                "recommendation": f.recommendation,
+                "why_it_matters": getattr(f, "why_it_matters", None),
+                "evidence": getattr(f, "evidence", None),
+                "suggested_fix": getattr(f, "suggested_fix", None),
+                "root_cause_group": getattr(f, "root_cause_group", "general"),
+            }
+            for f in analysis.findings
+        ],
         "interview": {
             "score": latest.score,
             "status": latest.status,

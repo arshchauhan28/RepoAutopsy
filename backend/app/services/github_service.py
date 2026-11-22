@@ -26,23 +26,68 @@ def headers() -> dict[str, str]:
     return base
 
 
+def get_github_api_timeout() -> httpx.Timeout:
+    return httpx.Timeout(
+        settings.github_read_timeout,
+        connect=settings.github_connect_timeout,
+        read=settings.github_read_timeout,
+        write=10.0,
+        pool=10.0,
+    )
+
+
+def get_github_archive_timeout() -> httpx.Timeout:
+    return httpx.Timeout(
+        settings.github_archive_timeout,
+        connect=settings.github_connect_timeout,
+        read=settings.github_archive_timeout,
+        write=10.0,
+        pool=10.0,
+    )
+
+
 def fetch_repository(owner: str, repo: str) -> dict:
-    timeout = httpx.Timeout(30.0, connect=10.0)
-    with httpx.Client(timeout=timeout, headers=headers(), follow_redirects=True) as client:
-        response = client.get(f"https://api.github.com/repos/{owner}/{repo}")
-        if response.status_code == 404:
-            raise GitHubError("Repository was not found or is not accessible with the configured GitHub token.")
-        response.raise_for_status()
-        meta = response.json()
+    api_timeout = get_github_api_timeout()
+    archive_timeout = get_github_archive_timeout()
+    with httpx.Client(timeout=api_timeout, headers=headers(), follow_redirects=True) as client:
+        try:
+            response = client.get(f"https://api.github.com/repos/{owner}/{repo}", timeout=api_timeout)
+            if response.status_code == 404:
+                raise GitHubError("Repository was not found or is not accessible with the configured GitHub token.")
+            response.raise_for_status()
+            meta = response.json()
+        except httpx.TimeoutException as exc:
+            raise GitHubError("GitHub API request timed out while fetching repository metadata.") from exc
+        except (httpx.ConnectError, httpx.NetworkError) as exc:
+            raise GitHubError("Failed to connect to GitHub API. Please check your network connection.") from exc
+        except httpx.HTTPStatusError as exc:
+            raise GitHubError(f"GitHub API returned error: {exc.response.status_code}") from exc
 
         branch = meta.get("default_branch", "main")
         commit_sha = None
-        commit_response = client.get(f"https://api.github.com/repos/{owner}/{repo}/commits/{branch}")
-        if commit_response.is_success:
-            commit_sha = commit_response.json().get("sha")
+        try:
+            commit_response = client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/commits/{branch}",
+                timeout=api_timeout,
+            )
+            if commit_response.is_success:
+                commit_sha = commit_response.json().get("sha")
+        except (httpx.TimeoutException, httpx.RequestError):
+            commit_sha = None
 
-        archive = client.get(f"https://api.github.com/repos/{owner}/{repo}/zipball/{branch}")
-        archive.raise_for_status()
+        try:
+            archive = client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/zipball/{branch}",
+                timeout=archive_timeout,
+            )
+            archive.raise_for_status()
+        except httpx.TimeoutException as exc:
+            raise GitHubError("GitHub request timed out while downloading repository archive.") from exc
+        except (httpx.ConnectError, httpx.NetworkError) as exc:
+            raise GitHubError("Failed to connect to GitHub while downloading repository archive.") from exc
+        except httpx.HTTPStatusError as exc:
+            raise GitHubError(f"GitHub archive download returned error: {exc.response.status_code}") from exc
+
         max_bytes = settings.max_repo_size_mb * 1024 * 1024
         if len(archive.content) > max_bytes:
             raise GitHubError(f"Repository archive exceeds the {settings.max_repo_size_mb} MB limit.")

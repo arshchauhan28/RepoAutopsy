@@ -22,6 +22,7 @@ class Analysis(Base):
     file_tree: Mapped[list | None] = mapped_column(JSON, nullable=True)
     languages: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     ai_insights: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    analyzer_version: Mapped[str | None] = mapped_column(String(20), nullable=True, default="2.1.0")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

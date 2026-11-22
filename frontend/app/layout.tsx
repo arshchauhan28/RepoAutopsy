@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'RepoAutopsy — Codebase Doctor & AI Interviewer',
-  description: 'Analyze a GitHub repository, understand its architecture, and practice a project-specific technical interview.',
+  title: 'RepoAutopsy — Codebase Anatomy, Diagnostics & CodeVitals',
+  description: 'Analyze a GitHub repository, explore its anatomy, run diagnostics, review case reports, and defend your codebase with CodeVitals.',
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

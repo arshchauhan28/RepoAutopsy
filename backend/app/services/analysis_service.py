@@ -1,10 +1,17 @@
 from datetime import datetime
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.models.analysis import Analysis
 from app.models.finding import Finding
 from app.analyzers.engine import run_static_analysis
 from app.services.github_service import fetch_repository
 from app.services.ai_service import repository_insights
+
+FINDING_COLUMNS = {
+    "category", "severity", "confidence", "title", "description",
+    "file_path", "line", "recommendation", "why_it_matters",
+    "evidence", "suggested_fix", "root_cause_group",
+}
 
 
 def analyze_repository(db: Session, analysis_id: str):
@@ -20,8 +27,18 @@ def analyze_repository(db: Session, analysis_id: str):
         meta = payload["meta"]
         files = payload["files"]
         result = run_static_analysis(files)
+
+        # Attach coverage directly to architecture dictionary
+        if "coverage" in result and "architecture" in result:
+            result["architecture"]["coverage"] = result["coverage"]
+
         context = {
-            "repo": {"owner": analysis.owner, "name": analysis.repo_name, "description": meta.get("description"), "topics": meta.get("topics", [])},
+            "repo": {
+                "owner": analysis.owner,
+                "name": analysis.repo_name,
+                "description": meta.get("description"),
+                "topics": meta.get("topics", []),
+            },
             "metrics": result["metrics"],
             "architecture": result["architecture"],
             "findings": result["findings"][:40],
@@ -36,6 +53,7 @@ def analyze_repository(db: Session, analysis_id: str):
         analysis.file_tree = result["file_tree"]
         analysis.ai_insights = insights
         analysis.summary = insights.get("summary")
+        analysis.analyzer_version = settings.analyzer_version
         analysis.status = "completed"
         analysis.updated_at = datetime.utcnow()
 
@@ -43,7 +61,8 @@ def analyze_repository(db: Session, analysis_id: str):
             db.delete(old)
         db.flush()
         for item in result["findings"]:
-            db.add(Finding(analysis_id=analysis.id, **item))
+            cleaned = {k: v for k, v in item.items() if k in FINDING_COLUMNS}
+            db.add(Finding(analysis_id=analysis.id, **cleaned))
         db.commit()
     except Exception as exc:
         db.rollback()

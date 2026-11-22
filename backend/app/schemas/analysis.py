@@ -10,11 +10,16 @@ class FindingOut(BaseModel):
     id: str
     category: str
     severity: str
+    confidence: str | None = "high"
     title: str
     description: str
     file_path: str | None = None
     line: int | None = None
     recommendation: str | None = None
+    why_it_matters: str | None = None
+    evidence: str | None = None
+    suggested_fix: str | None = None
+    root_cause_group: str | None = "general"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -34,6 +39,7 @@ class AnalysisOut(BaseModel):
     file_tree: list | None
     languages: dict | None
     ai_insights: dict | None
+    analyzer_version: str | None = None
     created_at: datetime
     findings: list[FindingOut] = Field(default_factory=list)
 

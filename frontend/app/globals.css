@@ -96,31 +96,83 @@ button { -webkit-tap-highlight-color: transparent; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
 
-/* React Flow */
+/* React Flow Controls & Visualization */
 .architecture-map { position: relative; }
-.architecture-map .react-flow__controls {
-  background: rgba(13,15,18,.96);
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 9px;
-  overflow: hidden;
-  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+.react-flow__controls {
+  background: #15181d !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.8), 0 8px 10px -6px rgba(0, 0, 0, 0.6) !important;
+  overflow: hidden !important;
 }
-.architecture-map .react-flow__controls-button {
-  width: 32px; height: 32px; padding: 7px;
-  background: #111418;
-  border: none;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  color: #c8c4bc;
+.react-flow__controls-button {
+  background: #15181d !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  color: #f3f4f6 !important;
+  fill: #f3f4f6 !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
 }
-.architecture-map .react-flow__controls-button:last-child { border-bottom: none; }
-.architecture-map .react-flow__controls-button:hover { background: #181b20; }
-.architecture-map .react-flow__controls-button svg { fill: currentColor; stroke: currentColor; color: #c8c4bc; }
-.architecture-map .react-flow__attribution { background: rgba(8,10,12,.86); color: #5e5b56; border-radius: 5px 0 0 0; }
-.architecture-map .react-flow__attribution a { color: #8a857d; }
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+.react-flow__controls-button:hover {
+  background: #232832 !important;
+  color: #f2b84b !important;
+  fill: #f2b84b !important;
+}
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+  max-width: 15px !important;
+  max-height: 15px !important;
+}
+.react-flow__edge-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 10px !important;
+  fill: #f3f4f6 !important;
+  font-weight: 500 !important;
+}
+.react-flow__edge-textbg {
+  fill: #0e1115 !important;
+  rx: 4px !important;
+  ry: 4px !important;
+  stroke: rgba(255, 255, 255, 0.18) !important;
+  stroke-width: 1px !important;
+}
+.react-flow__attribution {
+  background: rgba(8, 10, 12, 0.86) !important;
+  color: #5e5b56 !important;
+  border-radius: 5px 0 0 0 !important;
+}
+.react-flow__attribution a { color: #8a857d !important; }
+
+@keyframes slideUpDrawer {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes slideInRightDrawer {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-up {
+  animation: slideUpDrawer 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-slide-in-right {
+  animation: slideInRightDrawer 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
 @media (max-width: 640px) {
-  .architecture-map .react-flow__controls { transform: scale(.92); transform-origin: bottom left; }
-  .architecture-map .react-flow__attribution { font-size: 8px; }
+  .react-flow__controls-button {
+    width: 44px !important;
+    height: 44px !important;
+  }
 }
 
 @media print {
