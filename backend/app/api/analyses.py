@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db, SessionLocal
@@ -6,6 +6,7 @@ from app.models.analysis import Analysis
 from app.schemas.analysis import AnalysisCreate, AnalysisOut
 from app.services.github_service import parse_github_url, GitHubError
 from app.services.analysis_service import analyze_repository
+from app.core.rate_limit import check_rate_limit
 
 router = APIRouter(prefix="/analyses", tags=["analyses"])
 
@@ -19,7 +20,13 @@ def run_analysis_job(analysis_id: str):
 
 
 @router.post("", response_model=AnalysisOut, status_code=202)
-def create_analysis(payload: AnalysisCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def create_analysis(
+    payload: AnalysisCreate,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    check_rate_limit(request, "create_analysis", max_requests=10, window_seconds=60)
     try:
         owner, repo = parse_github_url(str(payload.github_url))
     except GitHubError as exc:

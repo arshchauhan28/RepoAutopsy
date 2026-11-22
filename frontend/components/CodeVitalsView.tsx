@@ -79,8 +79,13 @@ export function CodeVitalsView() {
 
         if (sessionIdParam) {
           try {
-            const sess = (await getInterview(sessionIdParam)) as unknown as AssessmentSession
+            const storedToken =
+              typeof window !== 'undefined'
+                ? localStorage.getItem(`repoautopsy-session-token-${sessionIdParam}`) || undefined
+                : undefined
+            const sess = (await getInterview(sessionIdParam, storedToken)) as unknown as AssessmentSession
             if (isMounted) {
+              if (storedToken && !sess.session_token) sess.session_token = storedToken
               setCurrentSession(sess)
               setView(sess.status === 'completed' ? 'results' : 'runner')
               return
@@ -107,8 +112,13 @@ export function CodeVitalsView() {
 
         if (storedSessionId) {
           try {
-            const sess = (await getInterview(storedSessionId)) as unknown as AssessmentSession
+            const storedToken =
+              typeof window !== 'undefined'
+                ? localStorage.getItem(`repoautopsy-session-token-${storedSessionId}`) || undefined
+                : undefined
+            const sess = (await getInterview(storedSessionId, storedToken)) as unknown as AssessmentSession
             if (sess && sess.status === 'active' && isMounted) {
+              if (storedToken && !sess.session_token) sess.session_token = storedToken
               setCurrentSession(sess)
               setView('runner')
             }
@@ -160,6 +170,9 @@ export function CodeVitalsView() {
       setCurrentSession(session)
       if (typeof window !== 'undefined') {
         localStorage.setItem(`repoautopsy-codevitals-${analysis.id}`, session.id)
+        if (session.session_token) {
+          localStorage.setItem(`repoautopsy-session-token-${session.id}`, session.session_token)
+        }
       }
       setView('runner')
     } catch (err: any) {
@@ -191,6 +204,9 @@ export function CodeVitalsView() {
       setCurrentSession(session)
       if (typeof window !== 'undefined') {
         localStorage.setItem(`repoautopsy-codevitals-${analysis.id}`, session.id)
+        if (session.session_token) {
+          localStorage.setItem(`repoautopsy-session-token-${session.id}`, session.session_token)
+        }
       }
       setView('runner')
     } catch (err: any) {
@@ -220,7 +236,12 @@ export function CodeVitalsView() {
     setLoading(true)
     setError('')
     try {
-      const sess = (await getInterview(sessionId)) as unknown as AssessmentSession
+      const storedToken =
+        typeof window !== 'undefined'
+          ? localStorage.getItem(`repoautopsy-session-token-${sessionId}`) || undefined
+          : undefined
+      const sess = (await getInterview(sessionId, storedToken)) as unknown as AssessmentSession
+      if (storedToken && !sess.session_token) sess.session_token = storedToken
       setCurrentSession(sess)
       setView(sess.status === 'completed' ? 'results' : 'runner')
     } catch (err: any) {

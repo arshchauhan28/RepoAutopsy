@@ -35,9 +35,14 @@ export default function TeamInvitePage() {
     team_session_id: string
     member_id: string
     assessment_session_id: string
+    session_token?: string
   }) => {
     try {
       setLoading(true)
+      if (typeof window !== 'undefined' && joinData.session_token) {
+        localStorage.setItem(`repoautopsy-session-token-${joinData.assessment_session_id}`, joinData.session_token)
+      }
+
       // If we have an analysis_id, navigate to the repo's codevitals view
       if (inviteInfo?.analysis_id) {
         router.push(
@@ -47,7 +52,10 @@ export default function TeamInvitePage() {
       }
 
       // Fallback: fetch session and run in-place
-      const loaded = (await getInterview(joinData.assessment_session_id)) as unknown as AssessmentSession
+      const loaded = (await getInterview(joinData.assessment_session_id, joinData.session_token)) as unknown as AssessmentSession
+      if (joinData.session_token && !loaded.session_token) {
+        loaded.session_token = joinData.session_token
+      }
       setSession(loaded)
     } catch (e: any) {
       setError(e?.message || 'Failed to start teammate assessment')

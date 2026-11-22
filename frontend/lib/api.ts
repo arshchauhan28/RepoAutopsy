@@ -227,6 +227,7 @@ export type AssessmentTurn = {
 
 export type AssessmentSession = {
   id: string
+  session_token?: string | null
   analysis_id: string
   status: 'active' | 'completed' | 'abandoned'
   current_index: number
@@ -351,13 +352,16 @@ export function startInterview(id: string, question_count = 10) {
   })
 }
 
-export function getInterview(id: string) {
-  return request<Interview>(`/api/v1/interviews/${id}`)
+export function getInterview(id: string, sessionToken?: string) {
+  return request<AssessmentSession>(`/api/v1/interviews/${id}`, {
+    headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined,
+  })
 }
 
-export function answerInterview(id: string, answer: string) {
-  return request<Interview>(`/api/v1/interviews/${id}/answer`, {
+export function answerInterview(id: string, answer: string, sessionToken?: string) {
+  return request<AssessmentSession>(`/api/v1/interviews/${id}/answer`, {
     method: 'POST',
+    headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined,
     body: JSON.stringify({ answer }),
   })
 }
@@ -375,10 +379,24 @@ export function startAssessment(analysisId: string, payload: any) {
 
 export function answerAssessmentTurn(
   sessionId: string,
-  payload: { answer?: string; selected_option?: number; question_index?: number }
+  payload: { answer?: string; selected_option?: number | null; question_index?: number },
+  sessionToken?: string
 ) {
   return request<AssessmentSession>(`/api/v1/interviews/${sessionId}/answer`, {
     method: 'POST',
+    headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined,
+    body: JSON.stringify(payload),
+  })
+}
+
+export function submitAssessment(
+  sessionId: string,
+  payload: { answers: { question_index: number; answer?: string; selected_option?: number | null }[] },
+  sessionToken?: string
+) {
+  return request<AssessmentSession>(`/api/v1/interviews/${sessionId}/submit`, {
+    method: 'POST',
+    headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined,
     body: JSON.stringify(payload),
   })
 }
@@ -402,11 +420,34 @@ export function createTeamSession(payload: CreateTeamSessionPayload) {
   })
 }
 
-export function getTeamSession(sessionId: string, organizerToken?: string) {
-  const url = organizerToken
-    ? `/api/v1/interviews/team/sessions/${sessionId}?organizer_token=${encodeURIComponent(organizerToken)}`
-    : `/api/v1/interviews/team/sessions/${sessionId}`
-  return request<TeamSessionData>(url)
+export function getTeamSession(sessionId: string, organizerToken?: string, inviteToken?: string) {
+  const headers: Record<string, string> = {}
+  if (organizerToken) headers['X-Organizer-Token'] = organizerToken
+  if (inviteToken) headers['X-Invite-Token'] = inviteToken
+
+  return request<TeamSessionData>(`/api/v1/interviews/team/sessions/${sessionId}`, {
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
+  })
+}
+
+export function revokeTeamInvitation(sessionId: string, organizerToken: string) {
+  return request<{ status: string; new_invite_token: string; invite_url: string }>(
+    `/api/v1/interviews/team/sessions/${sessionId}/revoke-invite`,
+    {
+      method: 'POST',
+      headers: { 'X-Organizer-Token': organizerToken },
+    }
+  )
+}
+
+export function closeTeamSession(sessionId: string, organizerToken: string) {
+  return request<{ status: string; id: string }>(
+    `/api/v1/interviews/team/sessions/${sessionId}/close`,
+    {
+      method: 'POST',
+      headers: { 'X-Organizer-Token': organizerToken },
+    }
+  )
 }
 
 export function getTeamInviteInfo(inviteToken: string) {
@@ -418,6 +459,7 @@ export function joinTeamSession(inviteToken: string, payload: { display_name: st
     team_session_id: string
     member_id: string
     assessment_session_id: string
+    session_token?: string
     status: string
   }>(`/api/v1/interviews/team/join/${inviteToken}`, {
     method: 'POST',

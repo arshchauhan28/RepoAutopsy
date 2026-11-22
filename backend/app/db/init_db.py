@@ -6,6 +6,23 @@ from app.models import analysis, finding, interview
 logger = logging.getLogger(__name__)
 
 
+def _safe_add_column(conn, table: str, col_name: str, col_type: str, existing_cols: set[str]):
+    """
+    Safely adds a column if it does not exist, catching concurrent worker race conditions.
+    """
+    if col_name in existing_cols:
+        return
+    try:
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"))
+        conn.commit()
+    except Exception as exc:
+        err = str(exc).lower()
+        if "duplicate column" in err or "already exists" in err:
+            logger.debug("Column %s already added to table %s by another worker.", col_name, table)
+        else:
+            logger.warning("Could not add column %s to %s: %s", col_name, table, exc)
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
     try:
@@ -24,19 +41,18 @@ def init_db():
                     ("root_cause_group", "VARCHAR(100) DEFAULT 'general'"),
                 ]
                 for col_name, col_type in new_cols:
-                    if col_name not in existing_cols:
-                        conn.execute(text(f"ALTER TABLE findings ADD COLUMN {col_name} {col_type}"))
+                    _safe_add_column(conn, "findings", col_name, col_type, existing_cols)
 
             # Analyses migration
             if "analyses" in table_names:
                 existing_analysis_cols = {c["name"] for c in inspector.get_columns("analyses")}
-                if "analyzer_version" not in existing_analysis_cols:
-                    conn.execute(text("ALTER TABLE analyses ADD COLUMN analyzer_version VARCHAR(20)"))
+                _safe_add_column(conn, "analyses", "analyzer_version", "VARCHAR(20)", existing_analysis_cols)
 
             # CodeVitals InterviewSession migration
             if "interview_sessions" in table_names:
                 session_cols = {c["name"] for c in inspector.get_columns("interview_sessions")}
                 session_new = [
+                    ("session_token", "VARCHAR(64)"),
                     ("assessment_type", "VARCHAR(30) DEFAULT 'complete'"),
                     ("scope_type", "VARCHAR(30) DEFAULT 'complete'"),
                     ("selected_components", "JSON"),
@@ -51,8 +67,7 @@ def init_db():
                     ("hackathon_context", "JSON"),
                 ]
                 for col_name, col_type in session_new:
-                    if col_name not in session_cols:
-                        conn.execute(text(f"ALTER TABLE interview_sessions ADD COLUMN {col_name} {col_type}"))
+                    _safe_add_column(conn, "interview_sessions", col_name, col_type, session_cols)
 
             # CodeVitals InterviewTurn migration
             if "interview_turns" in table_names:
@@ -73,8 +88,7 @@ def init_db():
                     ("explanation", "TEXT"),
                 ]
                 for col_name, col_type in turn_new:
-                    if col_name not in turn_cols:
-                        conn.execute(text(f"ALTER TABLE interview_turns ADD COLUMN {col_name} {col_type}"))
+                    _safe_add_column(conn, "interview_turns", col_name, col_type, turn_cols)
 
             conn.commit()
     except Exception as exc:

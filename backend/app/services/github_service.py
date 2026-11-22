@@ -6,6 +6,8 @@ import httpx
 from app.core.config import settings
 
 GITHUB_RE = re.compile(r"^https?://github\.com/([^/]+)/([^/#?]+?)(?:\.git)?/?(?:#.*)?$")
+OWNER_RE = re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$")
+REPO_RE = re.compile(r"^[a-zA-Z0-9_.-]{1,100}$")
 
 
 class GitHubError(Exception):
@@ -16,7 +18,10 @@ def parse_github_url(url: str) -> tuple[str, str]:
     match = GITHUB_RE.match(url.strip())
     if not match:
         raise GitHubError("Only public GitHub repository URLs are supported, e.g. https://github.com/owner/repository")
-    return match.group(1), match.group(2)
+    owner, repo = match.group(1), match.group(2)
+    if not OWNER_RE.match(owner) or not REPO_RE.match(repo) or repo in {".", ".."}:
+        raise GitHubError("Invalid GitHub repository owner or repository name format.")
+    return owner, repo
 
 
 def headers() -> dict[str, str]:

@@ -51,6 +51,12 @@ export function TeamInviteJoin({ inviteToken, onJoined }: TeamInviteJoinProps) {
         display_name: displayName.trim(),
         member_id: selectedSlotId || undefined,
       })
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`repoautopsy-team-inv-${res.team_session_id}`, inviteToken)
+        if (res.session_token) {
+          localStorage.setItem(`repoautopsy-session-token-${res.assessment_session_id}`, res.session_token)
+        }
+      }
       onJoined(res)
     } catch (err: any) {
       setError(err?.message || 'Failed to join team session.')

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from datetime import datetime
 from typing import Any
 from sqlalchemy.orm import Session
@@ -58,7 +59,10 @@ def start_interview(
         hackathon_context=hackathon_context,
     )
 
+    session_token = secrets.token_urlsafe(32)
+
     session = InterviewSession(
+        session_token=session_token,
         analysis_id=analysis.id,
         status="active",
         current_index=0,
@@ -116,11 +120,19 @@ def answer_current(
     if session.status != "active":
         raise ValueError("This assessment is already complete.")
 
-    target_idx = question_index if (question_index is not None and 0 <= question_index < len(turns)) else session.current_index
+    if question_index is not None:
+        if question_index < 0 or question_index >= len(turns):
+            raise ValueError(f"Question index {question_index} out of range (0-{len(turns)-1}).")
+        target_idx = question_index
+    else:
+        target_idx = session.current_index
+
     if target_idx >= len(turns):
         raise ValueError("Invalid question index.")
 
     turn = turns[target_idx]
+    if turn.earned_score is not None:
+        raise ValueError(f"Question {target_idx + 1} has already been submitted and evaluated.")
     analysis = session.analysis
     context = context_for_analysis(analysis) if analysis else {}
 
@@ -160,3 +172,60 @@ def answer_current(
     db.commit()
     db.refresh(turn)
     return turn
+
+
+def submit_batch_answers(
+    db: Session,
+    session: InterviewSession,
+    answers: list[dict[str, Any]],
+) -> InterviewSession:
+    """
+    Atomically evaluates all questions and completes the assessment within a single transaction.
+    Protects against partial submission failures, race conditions, and network dropouts.
+    """
+    if session.status != "active":
+        raise ValueError("This assessment is already complete.")
+
+    turns_map = {t.question_index: t for t in session.turns}
+    analysis = session.analysis
+    context = context_for_analysis(analysis) if analysis else {}
+
+    for item in answers:
+        q_idx = item.get("question_index")
+        if q_idx is None or q_idx not in turns_map:
+            continue
+        turn = turns_map[q_idx]
+        evaluate_turn(
+            turn,
+            answer_text=item.get("answer"),
+            selected_option=item.get("selected_option"),
+            context=context,
+        )
+
+    # Set current index to end
+    session.current_index = len(session.turns)
+
+    # Compute final score and feedback
+    summary = compute_assessment_summary(session)
+    session.score = summary["overall_score"]
+    session.category_scores = summary["category_scores"]
+    session.status = "completed"
+    session.feedback = {
+        "summary": f"Assessment completed with score {summary['overall_score']}/100.",
+        "strengths": summary["strengths"],
+        "gaps": summary["knowledge_gaps"],
+        "category_scores": summary["category_scores"],
+    }
+
+    if session.team_member_id:
+        member = db.get(TeamMember, session.team_member_id)
+        if member:
+            member.status = "completed"
+            member.score = summary["overall_score"]
+            member.category_scores = summary["category_scores"]
+            member.completed_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(session)
+    return session
+

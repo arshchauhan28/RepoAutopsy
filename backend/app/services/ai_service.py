@@ -81,7 +81,7 @@ def _call_json(system: str, user: str) -> dict | None:
     }
 
     try:
-        response = client.chat.completions.create(**request)
+        response = client.chat.completions.create(**request, timeout=15.0)
         content = response.choices[0].message.content if response.choices else ""
         result = _parse_json(content or "")
         if result is not None:
@@ -110,7 +110,7 @@ def _call_json(system: str, user: str) -> dict | None:
                 {"role": "user", "content": user},
             ],
         }
-        response = client.chat.completions.create(**fallback_request)
+        response = client.chat.completions.create(**fallback_request, timeout=15.0)
         content = response.choices[0].message.content if response.choices else ""
         result = _parse_json(content or "")
         if result is not None:

@@ -20,7 +20,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import type { TeamSessionData } from '@/lib/api'
-import { getTeamSession } from '@/lib/api'
+import { getTeamSession, revokeTeamInvitation } from '@/lib/api'
 
 interface TeamDashboardProps {
   teamSessionId: string
@@ -38,14 +38,34 @@ export function TeamDashboard({
   const [data, setData] = useState<TeamSessionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [revoking, setRevoking] = useState(false)
   const [error, setError] = useState('')
 
   const load = () => {
     setLoading(true)
-    getTeamSession(teamSessionId, organizerToken)
+    const storedInvite =
+      typeof window !== 'undefined'
+        ? localStorage.getItem(`repoautopsy-team-inv-${teamSessionId}`) || undefined
+        : undefined
+    getTeamSession(teamSessionId, organizerToken, storedInvite)
       .then(setData)
       .catch(e => setError(e?.message || 'Failed to load team dashboard'))
       .finally(() => setLoading(false))
+  }
+
+  const handleRevokeInvite = async () => {
+    if (!organizerToken) return
+    if (!confirm('Revoking this invitation link will immediately invalidate all existing invite links. Generate a new link?')) return
+    setRevoking(true)
+    try {
+      const res = await revokeTeamInvitation(teamSessionId, organizerToken)
+      setData(prev => (prev ? { ...prev, invite_token: res.new_invite_token } : prev))
+      alert('A new cryptographic invite link has been generated. The previous link is now permanently revoked.')
+    } catch (err: any) {
+      alert(err?.message || 'Failed to revoke invite link.')
+    } finally {
+      setRevoking(false)
+    }
   }
 
   useEffect(() => {
@@ -198,6 +218,17 @@ export function TeamDashboard({
               <span>Share to WhatsApp</span>
               <ExternalLink size={12} />
             </a>
+
+            {data.is_organizer && (
+              <button
+                onClick={handleRevokeInvite}
+                disabled={revoking}
+                className="flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition disabled:opacity-50"
+                title="Revoke active invite link and generate a fresh one"
+              >
+                <span>{revoking ? 'Revoking…' : 'Revoke Link'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

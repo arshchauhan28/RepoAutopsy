@@ -17,6 +17,7 @@ class InterviewSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # CodeVitals 2.0 extensions
+    session_token: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     assessment_type: Mapped[str] = mapped_column(String(30), default="complete")  # complete, component, team
     scope_type: Mapped[str] = mapped_column(String(30), default="complete")  # complete, component
     selected_components: Mapped[list | None] = mapped_column(JSON, nullable=True)

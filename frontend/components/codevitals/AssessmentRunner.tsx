@@ -17,7 +17,7 @@ import {
   Radio,
 } from 'lucide-react'
 import type { AssessmentSession, AssessmentTurn } from '@/lib/api'
-import { answerAssessmentTurn } from '@/lib/api'
+import { answerAssessmentTurn, submitAssessment } from '@/lib/api'
 
 interface AssessmentRunnerProps {
   session: AssessmentSession
@@ -87,25 +87,28 @@ export function AssessmentRunner({ session: initialSession, onCompleted, onExit 
       : a.answer.trim().length > 0
   }).length
 
-  // Submit all answers to backend for final evaluation
+  // Submit all answers atomically to backend for final evaluation (REL-02)
   const handleFinalSubmit = async () => {
     setSubmitting(true)
     setError('')
     try {
-      let activeSession = session
-      // Submit each turn sequentially to backend
-      for (let i = 0; i < turns.length; i++) {
+      const answersList = turns.map((t, i) => {
         const ansData = userAnswers[i] || { answer: '', selectedOption: null }
-        activeSession = await answerAssessmentTurn(activeSession.id, {
+        return {
           question_index: i,
           answer: ansData.answer.trim() || undefined,
           selected_option: ansData.selectedOption !== null ? ansData.selectedOption : undefined,
-        })
-      }
-      setSession(activeSession)
-      onCompleted(activeSession)
+        }
+      })
+      const completedSession = await submitAssessment(
+        session.id,
+        { answers: answersList },
+        session.session_token || undefined
+      )
+      setSession(completedSession)
+      onCompleted(completedSession)
     } catch (err: any) {
-      setError(err?.message || 'Failed to submit assessment answers.')
+      setError(err?.message || 'Failed to submit assessment answers. Please check your network and retry.')
       setSubmitting(false)
     }
   }

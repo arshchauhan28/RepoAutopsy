@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Any
 
 
@@ -48,6 +48,27 @@ class TurnOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @model_validator(mode="after")
+    def mask_unanswered_turn_data(self) -> "TurnOut":
+        """
+        SEC-01: Prevent leakage of answers, rubrics, and explanations
+        before the candidate has answered and been evaluated on this turn.
+        """
+        if self.earned_score is None:
+            self.explanation = None
+            self.evaluation = None
+        return self
+
+
+class BatchAnswerItem(BaseModel):
+    question_index: int
+    answer: str | None = Field(default=None, max_length=15000)
+    selected_option: int | None = None
+
+
+class BatchSubmitRequest(BaseModel):
+    answers: list[BatchAnswerItem]
+
 
 class InterviewOut(BaseModel):
     id: str
@@ -71,6 +92,23 @@ class InterviewOut(BaseModel):
     turns: list[TurnOut]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class InterviewCreationOut(InterviewOut):
+    """
+    SEC-02: Returned ONLY upon explicit authorized assessment creation.
+    Exposes the newly minted session_token to the participant so they can store it.
+    Generic GET responses return InterviewOut which never includes session_token.
+    """
+    session_token: str | None = None
+
+
+class JoinTeamResponse(BaseModel):
+    team_session_id: str
+    member_id: str
+    assessment_session_id: str
+    session_token: str | None = None
+    status: str
 
 
 # Team Assessment Schemas
