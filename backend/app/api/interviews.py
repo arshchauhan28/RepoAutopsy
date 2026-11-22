@@ -12,6 +12,10 @@ from app.schemas.interview import (
     BatchSubmitRequest,
     InterviewOut,
     InterviewCreationOut,
+    TurnOut,
+    PracticeRetryRequest,
+    RetakeAssessmentRequest,
+    ShareableReportOut,
     CreateTeamSessionRequest,
     JoinTeamRequest,
     JoinTeamResponse,
@@ -19,6 +23,11 @@ from app.schemas.interview import (
 from app.services.interview_service import start_interview, answer_current, submit_batch_answers
 from app.services.codevitals_service import (
     get_assessable_components,
+    build_repository_knowledge_model,
+    start_practice_session,
+    retry_practice_turn,
+    create_retake_session,
+    generate_shareable_report,
     create_team_session,
     start_member_assessment,
     aggregate_team_dashboard,
@@ -43,13 +52,26 @@ def get_components(analysis_id: str, request: Request, db: Session = Depends(get
     return get_assessable_components(analysis)
 
 
+@router.get("/analysis/{analysis_id}/knowledge-model")
+def get_knowledge_model(analysis_id: str, request: Request, db: Session = Depends(get_db)):
+    """
+    Returns the complete structured repository knowledge model:
+    Components, nested subcomponents, verified symbols, dependency edges, and confidence ratings.
+    """
+    check_rate_limit(request, "get_knowledge_model", max_requests=60, window_seconds=60)
+    analysis = db.get(Analysis, analysis_id)
+    if not analysis or analysis.status != "completed":
+        raise HTTPException(status_code=409, detail="Analysis must be completed first.")
+    return build_repository_knowledge_model(analysis)
+
+
 # -------------------------------------------------------------
 # 2. INDIVIDUAL ASSESSMENTS (COMPLETE & COMPONENT)
 # -------------------------------------------------------------
 @router.post("/analysis/{analysis_id}", response_model=InterviewCreationOut)
 def create_interview(
     analysis_id: str,
-    payload: StartInterviewRequest,
+    payload: StartAssessmentRequest,
     request: Request,
     db: Session = Depends(get_db),
 ):
@@ -73,6 +95,9 @@ def create_interview(
         difficulty=payload.difficulty,
         hackathon_mode=payload.hackathon_mode,
         hackathon_context=payload.hackathon_context,
+        participant_name=payload.participant_name,
+        mode=payload.mode,
+        parent_session_id=payload.parent_session_id,
     )
 
 
@@ -244,7 +269,146 @@ def submit_all_answers(
 
 
 # -------------------------------------------------------------
-# 3. TEAM ASSESSMENTS & HACKATHON READINESS
+# 3. PRACTICE MODE, RETAKES & REPORT EXPORTS (SPRINT 2)
+# -------------------------------------------------------------
+@router.get("/{session_id}/report", response_model=ShareableReportOut)
+def get_shareable_report(
+    session_id: str,
+    request: Request,
+    session_token: str | None = Query(default=None),
+    x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns a clean, privacy-safe export summary for an assessment session.
+    SEC-SAFE: Excludes session_token, organizer_token, secret rubrics, and raw credentials.
+    """
+    check_rate_limit(request, "get_report", max_requests=60, window_seconds=60)
+    stmt = (
+        select(InterviewSession)
+        .options(joinedload(InterviewSession.turns), joinedload(InterviewSession.analysis))
+        .where(InterviewSession.id == session_id)
+    )
+    session = db.execute(stmt).unique().scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Assessment session not found")
+
+    # If active, ensure requester is authorized
+    if session.status == "active" and session.session_token:
+        token = x_session_token or session_token
+        if not token or not secrets.compare_digest(token, session.session_token):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to in-flight assessment report.")
+
+    return generate_shareable_report(session)
+
+
+@router.post("/{session_id}/practice", response_model=InterviewCreationOut)
+def create_practice_from_session(
+    session_id: str,
+    request: Request,
+    session_token: str | None = Query(default=None),
+    x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    db: Session = Depends(get_db),
+):
+    """
+    Creates an adaptive Practice Mode session derived from weak topics or questions
+    of the specified assessment. Does NOT overwrite the parent assessment history.
+    """
+    check_rate_limit(request, "start_practice", max_requests=25, window_seconds=60)
+    session = db.get(InterviewSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Assessment session not found")
+
+    token = x_session_token or session_token
+    if session.session_token and (not token or not secrets.compare_digest(token, session.session_token)):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid session token.")
+
+    analysis = session.analysis
+    if not analysis:
+        raise HTTPException(status_code=400, detail="Associated analysis not found.")
+
+    practice = start_practice_session(
+        db=db,
+        analysis=analysis,
+        from_session_id=session.id,
+        target_components=session.selected_components,
+        difficulty=session.difficulty,
+        question_count=session.question_count,
+    )
+    return practice
+
+
+@router.post("/{session_id}/turns/{turn_id}/retry", response_model=TurnOut)
+def retry_turn(
+    session_id: str,
+    turn_id: str,
+    payload: PracticeRetryRequest,
+    request: Request,
+    session_token: str | None = Query(default=None),
+    x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    db: Session = Depends(get_db),
+):
+    """
+    Retries an answered turn in Practice Mode. Increments retry count and re-evaluates.
+    """
+    check_rate_limit(request, "retry_turn", max_requests=60, window_seconds=60)
+    session = db.get(InterviewSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Assessment session not found")
+
+    token = x_session_token or session_token
+    if session.session_token and (not token or not secrets.compare_digest(token, session.session_token)):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid session token.")
+
+    turn = db.get(InterviewTurn, turn_id)
+    if not turn or turn.session_id != session.id:
+        raise HTTPException(status_code=404, detail="Turn not found in this session.")
+
+    return retry_practice_turn(
+        db=db,
+        session=session,
+        turn=turn,
+        selected_option=payload.selected_option,
+        answer=payload.answer,
+        user_notes=payload.user_notes,
+    )
+
+
+@router.post("/{session_id}/retake", response_model=InterviewCreationOut)
+def create_retake(
+    session_id: str,
+    payload: RetakeAssessmentRequest,
+    request: Request,
+    session_token: str | None = Query(default=None),
+    x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    db: Session = Depends(get_db),
+):
+    """
+    Creates a new official assessment attempt linked to parent_session.
+    Prioritizes previously weak categories while preserving original attempt intact.
+    """
+    check_rate_limit(request, "retake_assessment", max_requests=25, window_seconds=60)
+    session = db.get(InterviewSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Assessment session not found")
+
+    token = x_session_token or session_token
+    if session.session_token and (not token or not secrets.compare_digest(token, session.session_token)):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid session token.")
+
+    retake_sess = create_retake_session(
+        db=db,
+        parent_session=session,
+        difficulty=payload.difficulty,
+        question_count=payload.question_count,
+        target_weak_areas=payload.target_weak_areas,
+        participant_name=payload.participant_name,
+    )
+    return retake_sess
+
+
+# -------------------------------------------------------------
+# 4. TEAM ASSESSMENTS & HACKATHON READINESS
 # -------------------------------------------------------------
 @router.post("/team/sessions")
 def create_team(
@@ -515,3 +679,64 @@ def get_team_sessions_for_repo(analysis_id: str, request: Request, db: Session =
         }
         for s in sessions
     ]
+
+
+@router.get("/team/sessions/{session_id}/readiness-report", response_model=ShareableReportOut)
+def get_team_readiness_report(
+    session_id: str,
+    request: Request,
+    organizer_token: str | None = Query(default=None),
+    invite_token: str | None = Query(default=None),
+    x_organizer_token: str | None = Header(default=None, alias="X-Organizer-Token"),
+    x_invite_token: str | None = Header(default=None, alias="X-Invite-Token"),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns a privacy-safe team readiness report for export.
+    Requires authorized team organizer or invite holder credentials.
+    SEC-SAFE: Excludes raw organizer/invite tokens and private individual scores.
+    """
+    check_rate_limit(request, "team_readiness_report", max_requests=30, window_seconds=60)
+    stmt = (
+        select(TeamSession)
+        .options(joinedload(TeamSession.members), joinedload(TeamSession.analysis))
+        .where(TeamSession.id == session_id)
+    )
+    team_session = db.execute(stmt).unique().scalar_one_or_none()
+    if not team_session:
+        raise HTTPException(status_code=404, detail="Team session not found")
+
+    org_tok = x_organizer_token or organizer_token
+    inv_tok = x_invite_token or invite_token
+
+    has_org = org_tok and secrets.compare_digest(org_tok, team_session.organizer_token)
+    has_inv = inv_tok and secrets.compare_digest(inv_tok, team_session.invite_token)
+
+    if not (has_org or has_inv):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to team readiness report.")
+
+    dashboard = aggregate_team_dashboard(team_session)
+    analysis = team_session.analysis
+    repo_name = f"{analysis.owner}/{analysis.repo_name}" if analysis else "Repository"
+
+    return {
+        "repository_name": repo_name,
+        "assessment_id": team_session.id,
+        "assessment_type": "team",
+        "scope_type": "complete",
+        "selected_components": ["complete"],
+        "difficulty": "intermediate",
+        "overall_score": dashboard.get("team_average_score"),
+        "category_scores": None,
+        "total_questions": len(team_session.shared_questions or []) * max(1, len(team_session.members or [])),
+        "completed_questions": dashboard.get("completed_members", 0),
+        "completion_date": team_session.created_at.isoformat() if team_session.created_at else None,
+        "strengths": dashboard.get("team_strengths", []),
+        "knowledge_gaps": [{"category": "Team", "title": g, "description": g, "missing_concepts": [], "supporting_files": [], "actionable_recommendation": g, "suggested_review_topics": []} for g in dashboard.get("team_knowledge_gaps", [])],
+        "coverage_limitations": "Team assessment synthesized from member submissions and shared architecture questions.",
+        "is_team": True,
+        "team_name": team_session.team_name,
+        "team_coverage_matrix": dashboard.get("coverage_matrix", []),
+        "team_readiness_summary": dashboard.get("team_readiness_summary"),
+        "hackathon_insights": dashboard.get("hackathon_insights", []),
+    }

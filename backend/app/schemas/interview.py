@@ -21,6 +21,8 @@ class StartAssessmentRequest(BaseModel):
     hackathon_mode: bool = False
     hackathon_context: dict[str, Any] | None = None
     participant_name: str | None = None
+    mode: str = "assessment"  # "assessment" | "practice"
+    parent_session_id: str | None = None
 
 
 class AnswerRequest(BaseModel):
@@ -45,6 +47,9 @@ class TurnOut(BaseModel):
     max_score: int = 100
     evaluation: dict[str, Any] | None = None
     explanation: str | None = None
+    evidence_confidence: str | None = "high"
+    retry_count: int = 0
+    user_notes: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -89,6 +94,10 @@ class InterviewOut(BaseModel):
     team_member_id: str | None = None
     hackathon_mode: int = 0
     hackathon_context: dict[str, Any] | None = None
+    mode: str = "assessment"
+    knowledge_gaps: list[dict[str, Any]] | None = None
+    parent_session_id: str | None = None
+    comparison_data: dict[str, Any] | None = None
     turns: list[TurnOut]
 
     model_config = ConfigDict(from_attributes=True)
@@ -132,3 +141,54 @@ class CreateTeamSessionRequest(BaseModel):
 class JoinTeamRequest(BaseModel):
     display_name: str = Field(min_length=1, max_length=100)
     member_id: str | None = None
+
+
+# Sprint 2 CodeVitals 3.0 Learning, Practice, Retake & Sharing Schemas
+class PracticeRetryRequest(BaseModel):
+    selected_option: int | None = None
+    answer: str | None = Field(default=None, max_length=15000)
+    user_notes: str | None = Field(default=None, max_length=5000)
+
+
+class RetakeAssessmentRequest(BaseModel):
+    difficulty: str = "intermediate"
+    question_count: int = Field(default=10, ge=3, le=30)
+    target_weak_areas: bool = True
+    participant_name: str | None = None
+
+
+class KnowledgeGapDetail(BaseModel):
+    category: str
+    component: str | None = None
+    title: str
+    description: str
+    missing_concepts: list[str] = []
+    supporting_files: list[str] = []
+    actionable_recommendation: str
+    suggested_review_topics: list[str] = []
+
+
+class ShareableReportOut(BaseModel):
+    """
+    SEC-SAFE: Authorized public/export summary.
+    Omits session_token, organizer_token, secret rubrics, and raw credentials.
+    """
+    repository_name: str
+    assessment_id: str
+    assessment_type: str
+    scope_type: str
+    selected_components: list[str] | None = None
+    difficulty: str
+    overall_score: int | None = None
+    category_scores: dict[str, Any] | None = None
+    total_questions: int
+    completed_questions: int
+    completion_date: str | None = None
+    strengths: list[str] = []
+    knowledge_gaps: list[dict[str, Any]] = []
+    coverage_limitations: str | None = None
+    is_team: bool = False
+    team_name: str | None = None
+    team_coverage_matrix: list[dict[str, Any]] | None = None
+    team_readiness_summary: str | None = None
+    hackathon_insights: list[str] = []

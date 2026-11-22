@@ -20,12 +20,15 @@ import {
   Cpu,
   HelpCircle,
 } from 'lucide-react'
-import type { AssessmentSession, AssessmentTurn } from '@/lib/api'
+import type { AssessmentSession, AssessmentTurn, ShareableReport } from '@/lib/api'
+import { getShareableReport } from '@/lib/api'
+import { ShareableReportModal } from './ShareableReportModal'
 
 interface AssessmentResultsProps {
   session: AssessmentSession
   analysisId: string
   onRetake: () => void
+  onStartPractice?: (sessionId: string) => void
   onViewTeamDashboard?: (teamSessionId: string) => void
 }
 
@@ -33,10 +36,25 @@ export function AssessmentResults({
   session,
   analysisId,
   onRetake,
+  onStartPractice,
   onViewTeamDashboard,
 }: AssessmentResultsProps) {
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [expandedTurns, setExpandedTurns] = useState<Record<string, boolean>>({})
+  const [shareReport, setShareReport] = useState<ShareableReport | null>(null)
+  const [loadingReport, setLoadingReport] = useState(false)
+
+  const handleExportReport = async () => {
+    setLoadingReport(true)
+    try {
+      const rep = await getShareableReport(session.id, session.session_token || undefined)
+      setShareReport(rep)
+    } catch (err: any) {
+      alert(err?.message || 'Failed to generate shareable report')
+    } finally {
+      setLoadingReport(false)
+    }
+  }
 
   const score = session.score ?? 0
   const feedback = session.feedback || {}
@@ -152,6 +170,25 @@ export function AssessmentResults({
             <span>Retake Assessment</span>
           </button>
 
+          {onStartPractice && (
+            <button
+              onClick={() => onStartPractice(session.id)}
+              className="inline-flex items-center gap-2 rounded-lg border border-purple-500/40 bg-purple-500/15 px-4 py-2.5 text-xs font-semibold text-purple-200 transition hover:bg-purple-500/25"
+            >
+              <Sparkles size={14} className="text-purple-400" />
+              <span>Practice Mode & Retries</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleExportReport}
+            disabled={loadingReport}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/[.12] bg-white/[.04] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-white/[.08]"
+          >
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span>{loadingReport ? 'Generating Report…' : 'Export Shareable Summary'}</span>
+          </button>
+
           {session.team_session_id && onViewTeamDashboard && (
             <button
               onClick={() => onViewTeamDashboard(session.team_session_id!)}
@@ -171,6 +208,31 @@ export function AssessmentResults({
           </Link>
         </div>
       </div>
+
+      {/* RETAKE COMPARISON BANNER (IF RETAKE ATTEMPT) */}
+      {session.comparison_data && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[.05] p-5 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs uppercase text-emerald-400 font-bold flex items-center gap-1.5">
+              <Trophy size={14} />
+              <span>Retake Progress Comparison</span>
+            </span>
+            <span className="font-mono text-xs text-white">
+              Previous: <strong className="text-slate-300">{session.comparison_data.parent_score}</strong> → Current:{' '}
+              <strong className="text-emerald-300">{session.comparison_data.current_score}</strong>{' '}
+              ({session.comparison_data.score_delta >= 0 ? `+${session.comparison_data.score_delta}` : session.comparison_data.score_delta} pts)
+            </span>
+          </div>
+          {session.comparison_data.improved_categories?.length > 0 && (
+            <p className="text-xs text-[#d1cec7]">
+              Improved areas: <strong className="text-emerald-300">{session.comparison_data.improved_categories.join(', ')}</strong>
+            </p>
+          )}
+          {session.comparison_data.comparison_note && (
+            <p className="text-[11px] font-mono text-[#8e8a82]">{session.comparison_data.comparison_note}</p>
+          )}
+        </div>
+      )}
 
       {/* CATEGORY BREAKDOWNS & STRENGTHS / GAPS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -241,14 +303,47 @@ export function AssessmentResults({
             </div>
             {(feedback.knowledge_gaps && feedback.knowledge_gaps.length > 0) ||
             (feedback.weaknesses && feedback.weaknesses.length > 0) ? (
-              <ul className="space-y-1.5">
-                {(feedback.knowledge_gaps || feedback.weaknesses).map((gap: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-2 text-xs text-[#d1cec7] leading-relaxed">
-                    <span className="text-amber-400 mt-0.5">•</span>
-                    <span>{gap}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-2.5">
+                {(feedback.knowledge_gaps || feedback.weaknesses).map((gap: any, idx: number) => {
+                  if (typeof gap === 'object' && gap !== null) {
+                    return (
+                      <div key={idx} className="border-b border-white/[.04] pb-2 last:border-none space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-white text-xs">{gap.title || gap.category}</span>
+                          {gap.category && (
+                            <span className="font-mono text-[9px] uppercase px-1.5 py-0.2 rounded bg-amber-400/10 text-amber-300 border border-amber-400/20">
+                              {gap.category}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[#cfcac2] text-[11px] leading-relaxed">{gap.description}</p>
+                        {gap.actionable_recommendation && (
+                          <div className="text-amber-200/90 text-[11px] border-l-2 border-amber-400 pl-2 py-0.5">
+                            {gap.actionable_recommendation}
+                          </div>
+                        )}
+                        {gap.supporting_files && gap.supporting_files.length > 0 && (
+                          <div className="font-mono text-[10px] text-[#77736c] flex items-center gap-1">
+                            <span>Review:</span>
+                            <Link
+                              href={`/repositories/${analysisId}?tab=anatomy&file=${encodeURIComponent(gap.supporting_files[0])}`}
+                              className="text-amber-300 hover:underline truncate"
+                            >
+                              {gap.supporting_files[0]}
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+                  return (
+                    <li key={idx} className="flex items-start gap-2 text-xs text-[#d1cec7] leading-relaxed list-none">
+                      <span className="text-amber-400 mt-0.5">•</span>
+                      <span>{gap}</span>
+                    </li>
+                  )
+                })}
+              </div>
             ) : (
               <p className="text-xs text-[#8e8a82]">No major technical gaps detected.</p>
             )}
@@ -478,6 +573,10 @@ export function AssessmentResults({
           })}
         </div>
       </div>
+
+      {shareReport && (
+        <ShareableReportModal report={shareReport} onClose={() => setShareReport(null)} />
+      )}
     </div>
   )
 }

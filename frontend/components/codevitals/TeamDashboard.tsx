@@ -18,9 +18,12 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  ShieldCheck,
+  Printer,
 } from 'lucide-react'
-import type { TeamSessionData } from '@/lib/api'
-import { getTeamSession, revokeTeamInvitation } from '@/lib/api'
+import type { TeamSessionData, ShareableReport } from '@/lib/api'
+import { getTeamSession, revokeTeamInvitation, getTeamReadinessReport } from '@/lib/api'
+import { ShareableReportModal } from './ShareableReportModal'
 
 interface TeamDashboardProps {
   teamSessionId: string
@@ -39,7 +42,25 @@ export function TeamDashboard({
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [revoking, setRevoking] = useState(false)
+  const [shareReport, setShareReport] = useState<ShareableReport | null>(null)
+  const [loadingReport, setLoadingReport] = useState(false)
   const [error, setError] = useState('')
+
+  const handleExportReadinessReport = async () => {
+    setLoadingReport(true)
+    try {
+      const storedInvite =
+        typeof window !== 'undefined'
+          ? localStorage.getItem(`repoautopsy-team-inv-${teamSessionId}`) || undefined
+          : undefined
+      const rep = await getTeamReadinessReport(teamSessionId, organizerToken, storedInvite)
+      setShareReport(rep)
+    } catch (err: any) {
+      alert(err?.message || 'Failed to generate team readiness report.')
+    } finally {
+      setLoadingReport(false)
+    }
+  }
 
   const load = () => {
     setLoading(true)
@@ -128,6 +149,14 @@ export function TeamDashboard({
 
         <div className="flex items-center gap-2">
           <button
+            onClick={handleExportReadinessReport}
+            disabled={loadingReport}
+            className="flex items-center gap-1.5 rounded-lg border border-purple-400/30 bg-purple-400/10 px-3 py-1.5 text-xs text-purple-300 hover:bg-purple-400/20 transition"
+          >
+            <ShieldCheck size={13} className="text-purple-400" />
+            <span>{loadingReport ? 'Exporting…' : 'Export Readiness Report'}</span>
+          </button>
+          <button
             onClick={load}
             className="flex items-center gap-1.5 rounded-lg border border-white/[.1] bg-black/40 px-3 py-1.5 text-xs text-[#aaa69e] hover:text-white"
           >
@@ -187,6 +216,17 @@ export function TeamDashboard({
             <div className="mt-1 font-mono text-xl font-bold text-[#c8c4bc]">{data.invited_members}</div>
           </div>
         </div>
+
+        {/* TEAM READINESS SYNTHESIS */}
+        {data.team_readiness_summary && (
+          <div className="rounded-xl border border-purple-500/25 bg-purple-500/[.03] p-4.5 space-y-2">
+            <div className="flex items-center gap-2 text-purple-400 font-mono text-[10px] uppercase tracking-wider font-bold">
+              <Sparkles size={14} />
+              <span>Team Readiness Synthesis</span>
+            </div>
+            <p className="text-xs text-[#e4d8fb] leading-relaxed">{data.team_readiness_summary}</p>
+          </div>
+        )}
 
         {/* SHAREABLE INVITATION LINK CARD */}
         <div className="rounded-xl border border-purple-400/25 bg-purple-400/[.03] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -332,7 +372,8 @@ export function TeamDashboard({
                   <th className="py-2 pr-4">Subsystem Component</th>
                   <th className="py-2 px-3">Layer</th>
                   <th className="py-2 px-3">Files</th>
-                  <th className="py-2 px-3">Coverage Status</th>
+                  <th className="py-2 px-3">Coverage</th>
+                  <th className="py-2 px-3">Understanding</th>
                   <th className="py-2 pl-3">Assigned / Evaluated Teammates</th>
                 </tr>
               </thead>
@@ -345,18 +386,31 @@ export function TeamDashboard({
                     <td className="py-2.5 px-3">
                       <span
                         className={`rounded px-2 py-0.5 font-mono text-[9px] uppercase font-bold ${
-                          row.status === 'assessed'
+                          row.coverage_level === 'High'
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : row.status === 'in_progress'
+                            : row.coverage_level === 'Medium'
                             ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : row.coverage_level === 'Low'
+                            ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
                             : 'bg-white/[.05] text-[#8e8a82] border border-white/[.08]'
                         }`}
                       >
-                        {row.status === 'assessed'
-                          ? 'Assessed'
-                          : row.status === 'in_progress'
-                          ? 'In Progress'
-                          : 'Not Yet Assessed'}
+                        {row.coverage_level || (row.status === 'assessed' ? 'Assessed' : 'Unassessed')}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span
+                        className={`rounded px-2 py-0.5 font-mono text-[9px] uppercase font-bold ${
+                          row.demonstrated_understanding === 'Strong'
+                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'
+                            : row.demonstrated_understanding === 'Moderate'
+                            ? 'bg-sky-500/15 text-sky-300 border border-sky-500/25'
+                            : row.demonstrated_understanding === 'Developing'
+                            ? 'bg-amber-500/15 text-amber-300 border border-amber-500/25'
+                            : 'bg-white/[.03] text-[#77736c] border border-white/[.06]'
+                        }`}
+                      >
+                        {row.demonstrated_understanding || 'Insufficient Evidence'}
                       </span>
                     </td>
                     <td className="py-2.5 pl-3 font-mono text-[11px] text-[#c8c4bc]">
@@ -423,6 +477,10 @@ export function TeamDashboard({
             </ul>
           </div>
         </div>
+      )}
+
+      {shareReport && (
+        <ShareableReportModal report={shareReport} onClose={() => setShareReport(null)} />
       )}
     </div>
   )

@@ -205,6 +205,8 @@ export type AssessableComponent = {
   sample_files: string[]
   has_sufficient_evidence: boolean
   confidence: string
+  subcomponents?: { id: string; name: string; files: string[]; file_count: number }[]
+  symbols?: string[]
 }
 
 export type AssessmentTurn = {
@@ -223,6 +225,10 @@ export type AssessmentTurn = {
   max_score: number
   evaluation?: any
   explanation?: string | null
+  rubric?: any
+  evidence_confidence?: 'high' | 'medium' | 'insufficient'
+  retry_count?: number
+  user_notes?: string | null
 }
 
 export type AssessmentSession = {
@@ -245,6 +251,10 @@ export type AssessmentSession = {
   team_member_id?: string | null
   hackathon_mode?: number
   hackathon_context?: any
+  mode?: 'assessment' | 'practice'
+  knowledge_gaps?: any[] | null
+  parent_session_id?: string | null
+  comparison_data?: any | null
   turns: AssessmentTurn[]
 }
 
@@ -297,11 +307,15 @@ export type TeamSessionData = {
     layer: string
     file_count: number
     status: 'assessed' | 'in_progress' | 'unassessed'
+    coverage_level?: 'High' | 'Medium' | 'Low' | 'Unassessed'
+    demonstrated_understanding?: 'Strong' | 'Moderate' | 'Developing' | 'Insufficient Evidence'
+    average_score?: number | null
     assigned_members: string[]
     completed_members: string[]
   }[]
   team_strengths: string[]
   team_knowledge_gaps: string[]
+  team_readiness_summary?: string | null
   hackathon_insights: string[]
   is_organizer?: boolean
   organizer_token?: string
@@ -477,4 +491,221 @@ export function getReport(id: string) {
 
 export function rerunAnalysis(id: string) {
   return request<Analysis>(`/api/v1/analyses/${id}/rerun`, { method: 'POST' })
+}
+
+export type ShareableReport = {
+  repository_name: string
+  assessment_id: string
+  assessment_type: string
+  scope_type: string
+  selected_components?: string[] | null
+  difficulty: string
+  overall_score?: number | null
+  category_scores?: Record<string, number> | null
+  total_questions: number
+  completed_questions: number
+  completion_date?: string | null
+  strengths: string[]
+  knowledge_gaps: {
+    category: string
+    component?: string | null
+    title: string
+    description: string
+    missing_concepts: string[]
+    supporting_files: string[]
+    actionable_recommendation: string
+    suggested_review_topics: string[]
+  }[]
+  coverage_limitations?: string | null
+  is_team: boolean
+  team_name?: string | null
+  team_coverage_matrix?: any[] | null
+  team_readiness_summary?: string | null
+  hackathon_insights: string[]
+}
+
+export function getKnowledgeModel(analysisId: string) {
+  return request<any>(`/api/v1/interviews/analysis/${analysisId}/knowledge-model`)
+}
+
+export function getShareableReport(sessionId: string, sessionToken?: string) {
+  return request<ShareableReport>(`/api/v1/interviews/${sessionId}/report`, {
+    headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined,
+  })
+}
+
+export function startPracticeSession(sessionId: string, sessionToken?: string) {
+  return request<AssessmentSession>(`/api/v1/interviews/${sessionId}/practice`, {
+    method: 'POST',
+    headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined,
+  })
+}
+
+export function retryPracticeTurn(
+  sessionId: string,
+  turnId: string,
+  payload: { selected_option?: number | null; answer?: string; user_notes?: string },
+  sessionToken?: string
+) {
+  return request<AssessmentTurn>(`/api/v1/interviews/${sessionId}/turns/${turnId}/retry`, {
+    method: 'POST',
+    headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined,
+    body: JSON.stringify(payload),
+  })
+}
+
+export function retakeAssessment(
+  sessionId: string,
+  payload: { difficulty?: string; question_count?: number; target_weak_areas?: boolean; participant_name?: string },
+  sessionToken?: string
+) {
+  return request<AssessmentSession>(`/api/v1/interviews/${sessionId}/retake`, {
+    method: 'POST',
+    headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined,
+    body: JSON.stringify(payload),
+  })
+}
+
+export function getTeamReadinessReport(sessionId: string, organizerToken?: string, inviteToken?: string) {
+  const headers: Record<string, string> = {}
+  if (organizerToken) headers['X-Organizer-Token'] = organizerToken
+  if (inviteToken) headers['X-Invite-Token'] = inviteToken
+
+  return request<ShareableReport>(`/api/v1/interviews/team/sessions/${sessionId}/readiness-report`, {
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
+  })
+}
+
+// ==============================================================================
+// PULL REQUEST AUTOPSY TYPES & API (SPRINT 3)
+// ==============================================================================
+
+export type PRChangedFile = {
+  filename: string
+  previous_filename?: string | null
+  status: 'modified' | 'added' | 'removed' | 'renamed'
+  additions: number
+  deletions: number
+  changes: number
+  patch?: string | null
+  is_binary?: boolean
+  is_truncated?: boolean
+  component_id?: string | null
+  component_name?: string | null
+}
+
+export type PRChangeImpact = {
+  affected_component_id: string
+  affected_component_name: string
+  impact_type: 'direct' | 'downstream_consumer' | 'contract_risk' | 'test_impact'
+  confidence: 'high' | 'medium' | 'low'
+  relevant_changed_file: string
+  dependency_evidence: string
+  explanation: string
+}
+
+export type DiagnosticsDeltaFinding = {
+  fingerprint: string
+  title: string
+  category: string
+  severity: string
+  file_path?: string | null
+  line?: number | null
+  description: string
+  status: 'new' | 'resolved' | 'unchanged'
+}
+
+export type DiagnosticsDelta = {
+  new_findings: DiagnosticsDeltaFinding[]
+  resolved_findings: DiagnosticsDeltaFinding[]
+  unchanged_findings: DiagnosticsDeltaFinding[]
+  new_high_severity_count: number
+  resolved_count: number
+}
+
+export type ArchitectureDelta = {
+  added_modules: string[]
+  removed_modules: string[]
+  new_dependencies: { file: string; package: string; status: string }[]
+  new_circular_cycles: string[][]
+  resolved_circular_cycles: string[][]
+  changed_service_boundaries: string[]
+}
+
+export type TestRecommendation = {
+  category: string
+  target_module: string
+  recommended_test_files: string[]
+  rationale: string
+}
+
+export type PullRequestAnalysis = {
+  id: string
+  analysis_id?: string | null
+  repo_owner: string
+  repo_name: string
+  pr_number: number
+  pr_title: string
+  pr_description?: string | null
+  pr_author?: string | null
+  base_branch: string
+  head_branch: string
+  base_sha: string
+  head_sha: string
+  status: 'queued' | 'running' | 'completed' | 'failed'
+  changed_files_count: number
+  additions: number
+  deletions: number
+  review_priority: 'high' | 'medium' | 'low'
+  review_priority_reasons: string[]
+  summary?: {
+    pr_number: number
+    title: string
+    author?: string | null
+    total_files_changed: number
+    total_additions: number
+    total_deletions: number
+    review_priority: string
+    key_impact_components: string[]
+    new_regressions_count: number
+    resolved_findings_count: number
+    executive_summary: string
+  } | null
+  changed_files: PRChangedFile[]
+  change_impacts: PRChangeImpact[]
+  architecture_delta?: ArchitectureDelta | null
+  diagnostics_delta?: DiagnosticsDelta | null
+  test_recommendations: TestRecommendation[]
+  limitations: string[]
+  created_at: string
+  completed_at?: string | null
+}
+
+export function analyzePullRequest(url: string, repositoryId?: string) {
+  return request<PullRequestAnalysis>('/api/v1/pull-requests/analyze', {
+    method: 'POST',
+    body: JSON.stringify({ url, repository_id: repositoryId }),
+  })
+}
+
+export function getPullRequestAnalysis(prAnalysisId: string) {
+  return request<PullRequestAnalysis>(`/api/v1/pull-requests/${prAnalysisId}`)
+}
+
+export function getPullRequestByNumber(owner: string, repo: string, prNumber: number) {
+  return request<PullRequestAnalysis>(`/api/v1/pull-requests/by-repo/${owner}/${repo}/${prNumber}`)
+}
+
+export function getPullRequestReport(prAnalysisId: string) {
+  return request<{
+    pr_number: number
+    pr_title: string
+    repo: string
+    review_priority: string
+    markdown: string
+    summary: any
+    diagnostics_delta: any
+    change_impacts: any[]
+    test_recommendations: any[]
+  }>(`/api/v1/pull-requests/${prAnalysisId}/report`)
 }

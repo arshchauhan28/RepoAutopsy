@@ -192,21 +192,28 @@ export function ComponentAssessmentConfig({
 
                     <div className="mt-3 flex items-center justify-between font-mono text-[10px] text-[#77736c] border-t border-white/[.06] pt-2">
                       <span>{comp.file_count} files</span>
-                      <span>{comp.total_lines?.toLocaleString()} lines</span>
+                      {comp.subcomponents && comp.subcomponents.length > 0 ? (
+                        <span className="text-sky-300/80">{comp.subcomponents.length} subcomponents</span>
+                      ) : (
+                        <span>{comp.total_lines?.toLocaleString()} lines</span>
+                      )}
                     </div>
 
-                    {comp.technologies && comp.technologies.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {comp.technologies.slice(0, 3).map(t => (
-                          <span
-                            key={t}
-                            className="rounded bg-white/[.04] px-1.5 py-0.2 font-mono text-[9px] text-[#8e8a82]"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-1">
+                      {comp.confidence && (
+                        <span className="rounded bg-black/40 px-1.5 py-0.2 font-mono text-[8px] uppercase text-[#8e8a82] border border-white/[.05]">
+                          {comp.confidence}
+                        </span>
+                      )}
+                      {comp.technologies && comp.technologies.slice(0, 3).map(t => (
+                        <span
+                          key={t}
+                          className="rounded bg-white/[.04] px-1.5 py-0.2 font-mono text-[9px] text-[#8e8a82]"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )

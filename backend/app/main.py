@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.init_db import init_db
-from app.api import analyses, interviews, reports
+from app.api import analyses, interviews, reports, pull_requests
 
 
 @asynccontextmanager
@@ -47,3 +47,4 @@ def health():
 app.include_router(analyses.router, prefix="/api/v1")
 app.include_router(interviews.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
+app.include_router(pull_requests.router, prefix="/api/v1")

@@ -31,6 +31,12 @@ class InterviewSession(Base):
     hackathon_mode: Mapped[int] = mapped_column(Integer, default=0)
     hackathon_context: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
+    # Sprint 2 CodeVitals 3.0 additions: Practice Mode & Retake Tracking
+    mode: Mapped[str] = mapped_column(String(20), default="assessment")  # assessment, practice
+    knowledge_gaps: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    parent_session_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    comparison_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
     analysis = relationship("Analysis", back_populates="interviews")
     turns = relationship(
         "InterviewTurn",
@@ -65,6 +71,11 @@ class InterviewTurn(Base):
     max_score: Mapped[int] = mapped_column(Integer, default=100)
     explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Sprint 2 CodeVitals 3.0 additions: Confidence, Retries, and Notes
+    evidence_confidence: Mapped[str | None] = mapped_column(String(20), default="high")  # high, medium, insufficient
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    user_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     session = relationship("InterviewSession", back_populates="turns")
 
 
@@ -81,6 +92,7 @@ class TeamSession(Base):
     is_hackathon_mode: Mapped[int] = mapped_column(Integer, default=0)
     hackathon_context: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     shared_questions: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    readiness_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     analysis = relationship("Analysis")

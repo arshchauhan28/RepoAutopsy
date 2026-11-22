@@ -16,6 +16,8 @@ import {
   getAnalysis,
   getInterview,
   startAssessment,
+  startPracticeSession,
+  retakeAssessment,
   getAssessmentHistory,
   getTeamSessionsForRepo,
   type Analysis,
@@ -278,6 +280,28 @@ export function CodeVitalsView() {
     setView('landing')
   }
 
+  // Start Practice Mode from completed session
+  const handleStartPractice = async (sessionId: string) => {
+    setStarting(true)
+    setError('')
+    try {
+      const storedToken =
+        typeof window !== 'undefined'
+          ? localStorage.getItem(`repoautopsy-session-token-${sessionId}`) || undefined
+          : undefined
+      const practiceSession = await startPracticeSession(sessionId, storedToken)
+      setCurrentSession(practiceSession)
+      if (typeof window !== 'undefined' && practiceSession.session_token) {
+        localStorage.setItem(`repoautopsy-session-token-${practiceSession.id}`, practiceSession.session_token)
+      }
+      setView('runner')
+    } catch (err: any) {
+      setError(err?.message || 'Failed to initialize Practice Mode.')
+    } finally {
+      setStarting(false)
+    }
+  }
+
   // Exit runner back to landing
   const handleExitRunner = () => {
     setView('landing')
@@ -390,6 +414,7 @@ export function CodeVitalsView() {
               session={currentSession}
               analysisId={params.id}
               onRetake={handleRetake}
+              onStartPractice={handleStartPractice}
               onViewTeamDashboard={
                 currentSession.team_session_id
                   ? () => handleOpenTeamDashboard(currentSession.team_session_id!)

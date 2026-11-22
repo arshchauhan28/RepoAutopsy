@@ -13,6 +13,7 @@ from app.services.codevitals_service import (
     generate_assessment_questions,
     evaluate_turn,
     compute_assessment_summary,
+    compute_retake_comparison,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,9 +46,11 @@ def start_interview(
     participant_name: str | None = None,
     team_session_id: str | None = None,
     team_member_id: str | None = None,
+    mode: str = "assessment",
+    parent_session_id: str | None = None,
 ) -> InterviewSession:
     """
-    Initializes a CodeVitals 2.0 assessment session with evidence-grounded questions.
+    Initializes a CodeVitals assessment session with evidence-grounded questions.
     """
     questions = generate_assessment_questions(
         analysis=analysis,
@@ -77,6 +80,8 @@ def start_interview(
         team_member_id=team_member_id,
         hackathon_mode=1 if hackathon_mode else 0,
         hackathon_context=hackathon_context,
+        mode=mode,
+        parent_session_id=parent_session_id,
     )
     db.add(session)
     db.flush()
@@ -97,6 +102,7 @@ def start_interview(
                 evidence=q.get("evidence"),
                 rubric=q.get("rubric"),
                 explanation=q.get("explanation"),
+                evidence_confidence=q.get("evidence_confidence", "high"),
                 max_score=100,
             )
         )
@@ -160,6 +166,11 @@ def answer_current(
             "category_scores": summary["category_scores"],
         }
 
+        if session.parent_session_id:
+            parent = db.get(InterviewSession, session.parent_session_id)
+            if parent:
+                session.comparison_data = compute_retake_comparison(session, parent)
+
         # If linked to a team member, update the member record too
         if session.team_member_id:
             member = db.get(TeamMember, session.team_member_id)
@@ -216,6 +227,11 @@ def submit_batch_answers(
         "gaps": summary["knowledge_gaps"],
         "category_scores": summary["category_scores"],
     }
+
+    if session.parent_session_id:
+        parent = db.get(InterviewSession, session.parent_session_id)
+        if parent:
+            session.comparison_data = compute_retake_comparison(session, parent)
 
     if session.team_member_id:
         member = db.get(TeamMember, session.team_member_id)

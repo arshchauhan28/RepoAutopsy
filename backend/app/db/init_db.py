@@ -1,7 +1,7 @@
 import logging
 from sqlalchemy import inspect, text
 from app.db.session import Base, engine
-from app.models import analysis, finding, interview
+from app.models import analysis, finding, interview, pull_request
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,10 @@ def init_db():
                     ("team_member_id", "VARCHAR(36)"),
                     ("hackathon_mode", "INTEGER DEFAULT 0"),
                     ("hackathon_context", "JSON"),
+                    ("mode", "VARCHAR(20) DEFAULT 'assessment'"),
+                    ("knowledge_gaps", "JSON"),
+                    ("parent_session_id", "VARCHAR(36)"),
+                    ("comparison_data", "JSON"),
                 ]
                 for col_name, col_type in session_new:
                     _safe_add_column(conn, "interview_sessions", col_name, col_type, session_cols)
@@ -86,9 +90,17 @@ def init_db():
                     ("earned_score", "INTEGER"),
                     ("max_score", "INTEGER DEFAULT 100"),
                     ("explanation", "TEXT"),
+                    ("evidence_confidence", "VARCHAR(20) DEFAULT 'high'"),
+                    ("retry_count", "INTEGER DEFAULT 0"),
+                    ("user_notes", "TEXT"),
                 ]
                 for col_name, col_type in turn_new:
                     _safe_add_column(conn, "interview_turns", col_name, col_type, turn_cols)
+
+            # TeamSession migration
+            if "team_sessions" in table_names:
+                team_cols = {c["name"] for c in inspector.get_columns("team_sessions")}
+                _safe_add_column(conn, "team_sessions", "readiness_summary", "JSON", team_cols)
 
             conn.commit()
     except Exception as exc:

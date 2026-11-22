@@ -15,9 +15,10 @@ import {
   Layers,
   HelpCircle,
   Radio,
+  Sparkles,
 } from 'lucide-react'
 import type { AssessmentSession, AssessmentTurn } from '@/lib/api'
-import { answerAssessmentTurn, submitAssessment } from '@/lib/api'
+import { answerAssessmentTurn, submitAssessment, retryPracticeTurn } from '@/lib/api'
 
 interface AssessmentRunnerProps {
   session: AssessmentSession
@@ -44,8 +45,58 @@ export function AssessmentRunner({ session: initialSession, onCompleted, onExit 
   })
 
   const [submitting, setSubmitting] = useState(false)
+  const [checkingPractice, setCheckingPractice] = useState(false)
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [error, setError] = useState('')
+
+  const isPracticeMode = session.mode === 'practice'
+
+  const handleCheckPractice = async () => {
+    if (!currentTurn) return
+    setCheckingPractice(true)
+    setError('')
+    try {
+      const updated = await answerAssessmentTurn(
+        session.id,
+        {
+          question_index: currentIndex,
+          selected_option: currentSelectedOption,
+          answer: currentAnswer.trim() || undefined,
+        },
+        session.session_token || undefined
+      )
+      setSession(updated)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to evaluate practice answer')
+    } finally {
+      setCheckingPractice(false)
+    }
+  }
+
+  const handleRetryPractice = async () => {
+    if (!currentTurn) return
+    setCheckingPractice(true)
+    setError('')
+    try {
+      const updatedTurn = await retryPracticeTurn(
+        session.id,
+        currentTurn.id,
+        {
+          selected_option: currentSelectedOption,
+          answer: currentAnswer.trim() || undefined,
+        },
+        session.session_token || undefined
+      )
+      setSession(prev => ({
+        ...prev,
+        turns: prev.turns.map(t => (t.id === updatedTurn.id ? updatedTurn : t)),
+      }))
+    } catch (err: any) {
+      setError(err?.message || 'Failed to retry practice question')
+    } finally {
+      setCheckingPractice(false)
+    }
+  }
 
   const turns = session.turns || []
   const currentTurn = turns[currentIndex]
@@ -183,6 +234,17 @@ export function AssessmentRunner({ session: initialSession, onCompleted, onExit 
         />
       </div>
 
+      {/* PRACTICE MODE BANNER */}
+      {isPracticeMode && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3.5 py-2 text-xs text-purple-300">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="text-purple-400" />
+            <span className="font-semibold">Practice Mode: Active Learning & Explanations</span>
+          </div>
+          <span className="font-mono text-[10px] text-purple-300/80">Retries and learning will not affect official records</span>
+        </div>
+      )}
+
       {error && (
         <div className="border border-rose-400/20 bg-rose-400/[.05] p-3 text-xs text-rose-300 rounded">
           {error}
@@ -204,6 +266,11 @@ export function AssessmentRunner({ session: initialSession, onCompleted, onExit 
             >
               {currentTurn.category}
             </span>
+            {currentTurn.evidence_confidence && (
+              <span className="rounded border border-white/[.08] bg-white/[.02] px-1.5 py-0.2 font-mono text-[9px] uppercase text-[#8e8a82]">
+                {currentTurn.evidence_confidence} confidence
+              </span>
+            )}
           </div>
 
           <span className="font-mono text-[9px] uppercase text-[#77736c]">
@@ -270,6 +337,59 @@ export function AssessmentRunner({ session: initialSession, onCompleted, onExit 
               <span>Ground your answer in real repository evidence</span>
               <span>{currentAnswer.length} characters</span>
             </div>
+          </div>
+        )}
+
+        {/* PRACTICE MODE FEEDBACK & RETRY CONTROLS */}
+        {isPracticeMode && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCheckPractice}
+                disabled={!isCurrentAnswered || checkingPractice}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/20 px-3.5 py-1.5 text-xs font-semibold text-purple-200 hover:bg-purple-500/30 disabled:opacity-40 transition"
+              >
+                {checkingPractice && <Loader2 size={13} className="animate-spin" />}
+                <span>Check Answer & View Explanation</span>
+              </button>
+
+              {currentTurn.earned_score !== null && currentTurn.earned_score !== undefined && (
+                <button
+                  onClick={handleRetryPractice}
+                  disabled={checkingPractice}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-400/20 px-3.5 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-400/30 transition"
+                >
+                  <span>Retry Question ({currentTurn.retry_count || 0} retries)</span>
+                </button>
+              )}
+            </div>
+
+            {/* Reveal evaluation & explanation if turn evaluated */}
+            {currentTurn.earned_score !== null && currentTurn.earned_score !== undefined && (
+              <div className="rounded-xl border border-purple-500/30 bg-purple-500/[.04] p-4 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] uppercase text-purple-400 font-bold">
+                    Practice Feedback: {currentTurn.earned_score}/100 pts
+                  </span>
+                  {currentTurn.evaluation?.verdict && (
+                    <span className="text-[11px] text-[#aaa69e]">{currentTurn.evaluation.verdict}</span>
+                  )}
+                </div>
+                {currentTurn.explanation && (
+                  <p className="text-[#d8d3cc] leading-relaxed">{currentTurn.explanation}</p>
+                )}
+                {currentTurn.rubric?.key_concepts && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="font-mono text-[9px] uppercase text-[#77736c]">Key concepts:</span>
+                    {currentTurn.rubric.key_concepts.map((c: string, i: number) => (
+                      <span key={i} className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-black/40 text-purple-200 border border-purple-500/20">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

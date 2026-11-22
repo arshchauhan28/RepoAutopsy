@@ -13,6 +13,7 @@ import {
   ExternalLink,
   BrainCircuit,
   FileText,
+  GitPullRequest,
 } from 'lucide-react'
 import { Nav } from '@/components/Nav'
 import { ArchitectureMap } from '@/components/ArchitectureMap'
@@ -20,7 +21,9 @@ import { FindingList } from '@/components/FindingList'
 import { AIReviewPanel } from '@/components/AIReviewPanel'
 import { MetricCard } from '@/components/MetricCard'
 import { StatusPill } from '@/components/StatusPill'
-import { getAnalysis, rerunAnalysis, type Analysis } from '@/lib/api'
+import { AnalyzePRModal } from '@/components/pull_request/AnalyzePRModal'
+import { PRDashboard } from '@/components/pull_request/PRDashboard'
+import { getAnalysis, rerunAnalysis, type Analysis, type PullRequestAnalysis } from '@/lib/api'
 import { groupFindings } from '@/lib/grouping'
 
 export type SectionTab = 'overview' | 'anatomy' | 'diagnostics' | 'case-report' | 'codevitals'
@@ -45,6 +48,9 @@ export default function RepositoryPage() {
   const [activeSection, setActiveSection] = useState<SectionTab>('overview')
   const [diagnosticsCategory, setDiagnosticsCategory] = useState<string>('all')
   const [rerunning, setRerunning] = useState(false)
+  const [isPRModalOpen, setIsPRModalOpen] = useState(false)
+  const [activePR, setActivePR] = useState<PullRequestAnalysis | null>(null)
+  const [workspaceMode, setWorkspaceMode] = useState<'snapshot' | 'pr'>('snapshot')
 
   async function load() {
     try {
@@ -181,6 +187,15 @@ export default function RepositoryPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsPRModalOpen(true)}
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-indigo-500/40 bg-indigo-500/10 px-3.5 py-2 text-xs font-semibold text-indigo-300 transition hover:bg-indigo-500/20 shadow-sm"
+              title="Analyze a GitHub Pull Request for this repository"
+            >
+              <GitPullRequest size={13} />
+              Analyze PR
+            </button>
+
             <Link
               href={`/repositories/${analysis.id}/report`}
               className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-white/[.1] px-3.5 py-2 text-xs font-medium text-[#c8c4bc] transition hover:bg-white/[.04]"
@@ -269,8 +284,45 @@ export default function RepositoryPage() {
         {/* COMPLETED DASHBOARD CONTENT */}
         {analysis.status === 'completed' && (
           <div className="mt-6 space-y-8">
-            {/* CANONICAL 5-SECTION NAVIGATION BAR: Overview | Anatomy | Diagnostics | Case Report | CodeVitals */}
-            <nav className="sticky top-0 z-30 flex items-center justify-between gap-2 overflow-x-auto rounded-xl border border-white/[.12] bg-[#0c0f13]/95 p-1.5 shadow-xl backdrop-blur-md">
+            {/* PR MODE CONTEXT BAR (if a PR has been analyzed) */}
+            {activePR && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-4 py-3 text-xs text-indigo-200">
+                <div className="flex items-center gap-2.5">
+                  <GitPullRequest size={15} className="text-indigo-400 shrink-0" />
+                  <span>
+                    Viewing Autopsy for <strong>PR #{activePR.pr_number}: {activePR.pr_title}</strong>
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    activePR.review_priority === 'high' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                    activePR.review_priority === 'medium' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                    'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                  }`}>
+                    {activePR.review_priority.toUpperCase()} PRIORITY
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setWorkspaceMode(workspaceMode === 'pr' ? 'snapshot' : 'pr')}
+                    className="rounded border border-indigo-400/40 bg-indigo-500/20 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500/30 transition"
+                  >
+                    {workspaceMode === 'pr' ? 'Switch to Repo Snapshot' : 'Switch to PR Autopsy'}
+                  </button>
+                  <button
+                    onClick={() => { setActivePR(null); setWorkspaceMode('snapshot'); }}
+                    className="rounded border border-white/10 px-2.5 py-1.5 text-xs text-[#77736c] hover:text-white transition"
+                  >
+                    Close PR
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {workspaceMode === 'pr' && activePR ? (
+              <PRDashboard pr={activePR} onBackToRepo={() => setWorkspaceMode('snapshot')} />
+            ) : (
+              <>
+                {/* CANONICAL 5-SECTION NAVIGATION BAR: Overview | Anatomy | Diagnostics | Case Report | CodeVitals */}
+                <nav className="sticky top-0 z-30 flex items-center justify-between gap-2 overflow-x-auto rounded-xl border border-white/[.12] bg-[#0c0f13]/95 p-1.5 shadow-xl backdrop-blur-md">
               <div className="flex items-center gap-1 min-w-max">
                 <button
                   onClick={() => handleTabChange('overview')}
@@ -436,6 +488,16 @@ export default function RepositoryPage() {
                       </div>
                       <div className="mt-3 space-y-2 text-xs">
                         <button
+                          onClick={() => setIsPRModalOpen(true)}
+                          className="flex w-full items-center justify-between rounded border border-indigo-500/30 bg-indigo-500/[.05] p-2 text-left text-indigo-200 hover:border-indigo-400/60 hover:text-white transition"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <GitPullRequest size={12} className="text-indigo-400" />
+                            Analyze Pull Request
+                          </span>
+                          <ArrowRight size={13} className="text-indigo-400" />
+                        </button>
+                        <button
                           onClick={() => handleTabChange('diagnostics', 'all')}
                           className="flex w-full items-center justify-between rounded border border-white/[.07] bg-white/[.02] p-2 text-left text-[#c8c4bc] hover:border-amber-400/40 hover:text-white transition"
                         >
@@ -584,9 +646,24 @@ export default function RepositoryPage() {
                 </div>
               </section>
             )}
-          </div>
-        )}
-      </main>
-    </div>
-  )
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ANALYZE PULL REQUEST MODAL */}
+      <AnalyzePRModal
+        isOpen={isPRModalOpen}
+        onClose={() => setIsPRModalOpen(false)}
+        onSuccess={(pr) => {
+          setActivePR(pr)
+          setWorkspaceMode('pr')
+        }}
+        repositoryId={analysis?.id}
+        defaultOwner={analysis?.owner}
+        defaultRepo={analysis?.repo_name}
+      />
+    </main>
+  </div>
+)
 }
