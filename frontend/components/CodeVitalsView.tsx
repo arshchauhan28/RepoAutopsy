@@ -1,292 +1,383 @@
 'use client'
 
+import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { FormEvent, useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, BrainCircuit, Loader2, Send, Trophy, CheckCircle2, ShieldAlert } from 'lucide-react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
+import { ArrowLeft, BrainCircuit, Loader2, RefreshCw } from 'lucide-react'
 import { Nav } from '@/components/Nav'
+import { CodeVitalsLanding } from '@/components/codevitals/CodeVitalsLanding'
+import { CompleteAssessmentConfig } from '@/components/codevitals/CompleteAssessmentConfig'
+import { ComponentAssessmentConfig } from '@/components/codevitals/ComponentAssessmentConfig'
+import { TeamSessionCreate } from '@/components/codevitals/TeamSessionCreate'
+import { TeamDashboard } from '@/components/codevitals/TeamDashboard'
+import { AssessmentRunner } from '@/components/codevitals/AssessmentRunner'
+import { AssessmentResults } from '@/components/codevitals/AssessmentResults'
 import {
-  answerInterview,
-  getInterview,
   getAnalysis,
-  startInterview,
+  getInterview,
+  startAssessment,
+  getAssessmentHistory,
+  getTeamSessionsForRepo,
   type Analysis,
-  type Interview,
+  type AssessmentSession,
 } from '@/lib/api'
+
+type CodeVitalsMode =
+  | 'landing'
+  | 'complete_config'
+  | 'component_config'
+  | 'team_create'
+  | 'team_dashboard'
+  | 'runner'
+  | 'results'
 
 export function CodeVitalsView() {
   const params = useParams<{ id: string }>()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  const [view, setView] = useState<CodeVitalsMode>('landing')
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
-  const [interview, setInterview] = useState<Interview | null>(null)
-  const [answer, setAnswer] = useState('')
+  const [currentSession, setCurrentSession] = useState<AssessmentSession | null>(null)
+  const [activeTeamSessionId, setActiveTeamSessionId] = useState<string | null>(null)
+  const [organizerToken, setOrganizerToken] = useState<string | undefined>(undefined)
+  const [history, setHistory] = useState<any[]>([])
+  const [teamSessions, setTeamSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState(false)
+  const [starting, setStarting] = useState(false)
   const [error, setError] = useState('')
 
+  const refreshHistoryAndTeams = useCallback(async (analysisId: string) => {
+    try {
+      const [hist, teams] = await Promise.all([
+        getAssessmentHistory(analysisId).catch(() => []),
+        getTeamSessionsForRepo(analysisId).catch(() => []),
+      ])
+      setHistory(hist || [])
+      setTeamSessions(teams || [])
+    } catch {
+      // Non-fatal
+    }
+  }, [])
+
   useEffect(() => {
+    if (!params.id) return
+
+    let isMounted = true
     ;(async () => {
       try {
+        setLoading(true)
         const a = await getAnalysis(params.id)
+        if (!isMounted) return
         setAnalysis(a)
-        const stored =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(`repoautopsy-codevitals-${params.id}`) ||
-              localStorage.getItem(`repolens-interview-${params.id}`)
-            : null
-        if (stored) {
-          const iv = await getInterview(stored)
-          setInterview(iv)
+
+        await refreshHistoryAndTeams(params.id)
+
+        // Check search parameters for direct session or team loading
+        const sessionIdParam = searchParams.get('session')
+        const teamIdParam = searchParams.get('team')
+
+        if (sessionIdParam) {
+          try {
+            const sess = (await getInterview(sessionIdParam)) as unknown as AssessmentSession
+            if (isMounted) {
+              setCurrentSession(sess)
+              setView(sess.status === 'completed' ? 'results' : 'runner')
+              return
+            }
+          } catch {
+            // Ignore param error and fallback
+          }
+        } else if (teamIdParam) {
+          const orgToken =
+            typeof window !== 'undefined'
+              ? localStorage.getItem(`repoautopsy-team-org-${teamIdParam}`) || undefined
+              : undefined
+          setActiveTeamSessionId(teamIdParam)
+          setOrganizerToken(orgToken)
+          setView('team_dashboard')
+          return
         }
-      } catch (e: any) {
-        setError(e?.message || 'Unable to load CodeVitals session')
+
+        // Check localStorage for previously active session
+        const storedSessionId =
+          typeof window !== 'undefined'
+            ? localStorage.getItem(`repoautopsy-codevitals-${params.id}`)
+            : null
+
+        if (storedSessionId) {
+          try {
+            const sess = (await getInterview(storedSessionId)) as unknown as AssessmentSession
+            if (sess && sess.status === 'active' && isMounted) {
+              setCurrentSession(sess)
+              setView('runner')
+            }
+          } catch {
+            // Expired or invalid session
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) setError(err?.message || 'Failed to load repository details')
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     })()
-  }, [params.id])
 
-  async function begin() {
+    return () => {
+      isMounted = false
+    }
+  }, [params.id, searchParams, refreshHistoryAndTeams])
+
+  // Handle Option selection from Landing screen
+  const handleSelectOption = (option: 'complete' | 'component' | 'team') => {
     setError('')
-    try {
-      const i = await startInterview(params.id, 8)
-      setInterview(i)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(`repoautopsy-codevitals-${params.id}`, i.id)
-        localStorage.setItem(`repolens-interview-${params.id}`, i.id)
-      }
-    } catch (e: any) {
-      setError(e?.message || 'Unable to start CodeVitals')
+    if (option === 'complete') {
+      setView('complete_config')
+    } else if (option === 'component') {
+      setView('component_config')
+    } else if (option === 'team') {
+      setView('team_create')
     }
   }
 
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    if (!interview || !answer.trim()) return
-    setSending(true)
+  // Handle Starting Complete Assessment
+  const handleStartComplete = async (config: {
+    questionCount: number
+    difficulty: 'beginner' | 'intermediate' | 'advanced'
+    participantName?: string
+  }) => {
+    if (!analysis) return
+    setStarting(true)
     setError('')
     try {
-      const next = await answerInterview(interview.id, answer.trim())
-      setInterview(next)
-      setAnswer('')
-    } catch (e: any) {
-      setError(e?.message || 'Failed to submit response')
+      const session = await startAssessment(analysis.id, {
+        assessment_type: 'complete',
+        scope_type: 'complete',
+        question_count: config.questionCount,
+        difficulty: config.difficulty,
+        participant_name: config.participantName || undefined,
+      })
+      setCurrentSession(session)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`repoautopsy-codevitals-${analysis.id}`, session.id)
+      }
+      setView('runner')
+    } catch (err: any) {
+      setError(err?.message || 'Failed to generate Complete Codebase assessment')
     } finally {
-      setSending(false)
+      setStarting(false)
     }
+  }
+
+  // Handle Starting Component Assessment
+  const handleStartComponent = async (config: {
+    selectedComponents: string[]
+    questionCount: number
+    difficulty: 'beginner' | 'intermediate' | 'advanced'
+    participantName?: string
+  }) => {
+    if (!analysis) return
+    setStarting(true)
+    setError('')
+    try {
+      const session = await startAssessment(analysis.id, {
+        assessment_type: 'component',
+        scope_type: 'component',
+        selected_components: config.selectedComponents,
+        question_count: config.questionCount,
+        difficulty: config.difficulty,
+        participant_name: config.participantName || undefined,
+      })
+      setCurrentSession(session)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`repoautopsy-codevitals-${analysis.id}`, session.id)
+      }
+      setView('runner')
+    } catch (err: any) {
+      setError(err?.message || 'Failed to generate Component assessment')
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  // Handle Team Session Created
+  const handleTeamCreated = (teamData: {
+    id: string
+    organizer_token: string
+    invite_token: string
+  }) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`repoautopsy-team-org-${teamData.id}`, teamData.organizer_token)
+    }
+    setActiveTeamSessionId(teamData.id)
+    setOrganizerToken(teamData.organizer_token)
+    setView('team_dashboard')
+    if (analysis) refreshHistoryAndTeams(analysis.id)
+  }
+
+  // Open past individual session
+  const handleOpenSession = async (sessionId: string) => {
+    setLoading(true)
+    setError('')
+    try {
+      const sess = (await getInterview(sessionId)) as unknown as AssessmentSession
+      setCurrentSession(sess)
+      setView(sess.status === 'completed' ? 'results' : 'runner')
+    } catch (err: any) {
+      setError(err?.message || 'Unable to open assessment session')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Open past team dashboard
+  const handleOpenTeamDashboard = (teamSessionId: string) => {
+    const orgToken =
+      typeof window !== 'undefined'
+        ? localStorage.getItem(`repoautopsy-team-org-${teamSessionId}`) || undefined
+        : undefined
+    setActiveTeamSessionId(teamSessionId)
+    setOrganizerToken(orgToken)
+    setView('team_dashboard')
+  }
+
+  // When assessment is finished
+  const handleAssessmentCompleted = (updatedSession: AssessmentSession) => {
+    setCurrentSession(updatedSession)
+    setView('results')
+    if (analysis) refreshHistoryAndTeams(analysis.id)
+  }
+
+  // Retake or return to landing
+  const handleRetake = () => {
+    setCurrentSession(null)
+    if (analysis && typeof window !== 'undefined') {
+      localStorage.removeItem(`repoautopsy-codevitals-${analysis.id}`)
+    }
+    setView('landing')
+  }
+
+  // Exit runner back to landing
+  const handleExitRunner = () => {
+    setView('landing')
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[#0e0e0d] text-[#e8e4dc]">
         <Nav />
-        <main className="mx-auto max-w-4xl px-4 py-16 text-sm text-[#77736c] sm:px-6">
-          Loading CodeVitals session…
+        <main className="mx-auto max-w-5xl px-4 py-20 text-center sm:px-6">
+          <Loader2 size={32} className="mx-auto animate-spin text-amber-400" />
+          <p className="mt-4 font-mono text-xs uppercase tracking-wider text-[#8e8a82]">
+            Loading CodeVitals Subsystem…
+          </p>
         </main>
       </div>
     )
   }
 
-  const current = interview?.turns?.[interview.current_index]
-
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#0e0e0d] text-[#e8e4dc]">
       <Nav />
-      <main className="mx-auto max-w-4xl px-4 py-7 pb-16 sm:px-6 sm:py-10 sm:pb-20">
-        <Link
-          href={`/repositories/${params.id}`}
-          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#66625b] transition hover:text-white"
-        >
-          <ArrowLeft size={14} /> Back to repository
-        </Link>
+      <main className="mx-auto max-w-5xl px-4 py-7 pb-20 sm:px-6 sm:py-10">
+        {/* TOP BREADCRUMB / REPO BAR */}
+        <div className="flex items-center justify-between border-b border-white/[.08] pb-4">
+          <Link
+            href={`/repositories/${params.id}`}
+            className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-[#77736c] transition hover:text-white"
+          >
+            <ArrowLeft size={14} /> Back to Repository Overview
+          </Link>
 
-        {/* PAGE HEADER */}
-        <div className="mt-7 flex flex-col gap-5 border-b border-white/[.08] pb-6 sm:flex-row sm:items-end sm:justify-between reveal">
-          <div>
-            <div className="flex items-center gap-2 text-amber-300">
-              <BrainCircuit size={18} />
-              <span className="font-mono text-[10px] uppercase tracking-[.16em]">CodeVitals Assessment</span>
-            </div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-4xl text-white">
-              How well do you know your codebase?
-            </h1>
-            <p className="mt-2 truncate font-mono text-[11px] text-[#8a867f]">
-              {analysis?.owner}/{analysis?.repo_name}
-            </p>
-          </div>
-
-          {interview && (
-            <div className="sm:text-right">
-              <div className="font-mono text-[9px] uppercase tracking-wider text-[#77736c]">Progress</div>
-              <div className="mt-1 font-mono text-lg text-white">
-                {Math.min(interview.current_index + 1, interview.turns.length)} / {interview.turns.length}
-              </div>
+          {analysis && (
+            <div className="font-mono text-xs text-[#8e8a82]">
+              <span className="text-[#55514b]">{analysis.owner} / </span>
+              <span className="font-semibold text-white">{analysis.repo_name}</span>
             </div>
           )}
         </div>
 
+        {/* ERROR BANNER */}
         {error && (
-          <div className="mt-5 border border-rose-400/20 bg-rose-400/[.05] p-3 text-sm text-rose-300 reveal">
+          <div className="mt-5 rounded-lg border border-rose-500/30 bg-rose-500/[.06] p-4 text-xs text-rose-300">
             {error}
           </div>
         )}
 
-        {/* PRE-ASSESSMENT SCREEN */}
-        {!interview && (
-          <div className="card mt-7 p-5 sm:p-7 reveal">
-            <div className="font-mono text-[9px] uppercase tracking-[.16em] text-amber-400">
-              / CodeVitals Questions
-            </div>
-            <h2 className="mt-3 text-xl font-semibold text-white">CodeVitals Questions</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#aaa69e]">
-              Test your understanding of the repository through personalized technical questions and discover areas where your knowledge can improve. Questions evaluate your architectural decisions, data flow, failure modes, and technical tradeoffs.
-            </p>
-            <button
-              onClick={begin}
-              className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 border border-amber-400/40 bg-amber-400 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-300 sm:w-auto"
-            >
-              Start CodeVitals <ArrowRight size={16} />
-            </button>
-          </div>
-        )}
+        {/* DYNAMIC VIEW ROUTER */}
+        <div className="mt-6">
+          {view === 'landing' && (
+            <CodeVitalsLanding
+              analysis={analysis}
+              onSelectOption={handleSelectOption}
+              history={history}
+              teamSessions={teamSessions}
+              onOpenSession={handleOpenSession}
+              onOpenTeamDashboard={handleOpenTeamDashboard}
+            />
+          )}
 
-        {/* ACTIVE QUESTION ASSESSMENT FORM */}
-        {interview?.status === 'active' && current && (
-          <form onSubmit={submit} className="card relative mt-7 overflow-hidden p-5 sm:p-7 reveal">
-            <div className="scan-overlay opacity-30" />
-            <div className="relative">
-              <div className="flex items-center justify-between gap-4">
-                <div className="font-mono text-[9px] uppercase tracking-[.16em] text-amber-400">
-                  CodeVitals Question {current.question_index + 1}
-                </div>
-                <div className="h-1.5 flex-1 max-w-36 overflow-hidden bg-white/[.06] sm:max-w-52">
-                  <div
-                    className="h-full bg-amber-400 transition-all duration-500"
-                    style={{
-                      width: `${((current.question_index + 1) / interview.turns.length) * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
+          {view === 'complete_config' && (
+            <CompleteAssessmentConfig
+              analysis={analysis}
+              onBack={() => setView('landing')}
+              onStart={handleStartComplete}
+              loading={starting}
+            />
+          )}
 
-              <h2 className="mt-4 text-lg font-medium leading-7 text-white sm:text-xl sm:leading-8">
-                {current.question}
-              </h2>
+          {view === 'component_config' && (
+            <ComponentAssessmentConfig
+              analysis={analysis}
+              onBack={() => setView('landing')}
+              onStart={handleStartComponent}
+              loading={starting}
+            />
+          )}
 
-              <textarea
-                value={answer}
-                onChange={e => setAnswer(e.target.value)}
-                placeholder="Explain your reasoning, reference the implementation, and mention tradeoffs…"
-                className="mt-6 min-h-48 w-full resize-y border border-white/[.1] bg-black/20 p-4 text-sm leading-6 text-slate-200 outline-none placeholder:text-[#55514b] transition focus:border-amber-400/40 sm:min-h-52"
-              />
+          {view === 'team_create' && (
+            <TeamSessionCreate
+              analysis={analysis}
+              onBack={() => setView('landing')}
+              onCreated={handleTeamCreated}
+            />
+          )}
 
-              <div className="mt-3 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-[#77736c]">
-                  Use evidence from the repository
-                </span>
-                <button
-                  disabled={sending || !answer.trim()}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 border border-amber-400/40 bg-amber-400 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-                >
-                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                  Submit answer
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
+          {view === 'team_dashboard' && activeTeamSessionId && (
+            <TeamDashboard
+              teamSessionId={activeTeamSessionId}
+              organizerToken={organizerToken}
+              onBack={() => {
+                setActiveTeamSessionId(null)
+                setView('landing')
+                if (analysis) refreshHistoryAndTeams(analysis.id)
+              }}
+              onOpenMemberAssessment={handleOpenSession}
+            />
+          )}
 
-        {/* COMPLETED ASSESSMENT RESULTS */}
-        {interview?.status === 'completed' && (
-          <div className="mt-7 space-y-4">
-            <div className="card p-6 text-center sm:p-8 reveal">
-              <div className="mx-auto grid h-14 w-14 place-items-center border border-emerald-400/20 bg-emerald-400/[.06] text-emerald-300">
-                <Trophy size={24} />
-              </div>
+          {view === 'runner' && currentSession && (
+            <AssessmentRunner
+              session={currentSession}
+              onCompleted={handleAssessmentCompleted}
+              onExit={handleExitRunner}
+            />
+          )}
 
-              <div className="mt-4 font-mono text-[10px] uppercase tracking-widest text-emerald-400">
-                Assessment Completed
-              </div>
-              <h2 className="mt-1 text-2xl font-semibold text-white">CodeVitals Results</h2>
-
-              <div className="mt-4 inline-block rounded-xl border border-white/[.08] bg-white/[.02] px-6 py-3">
-                <div className="font-mono text-[9px] uppercase tracking-[.16em] text-[#77736c]">
-                  CodeVitals Score
-                </div>
-                <div className="mt-1 text-5xl font-semibold text-white">
-                  {interview.score ?? 0}
-                  <span className="text-2xl text-[#77736c]">/100</span>
-                </div>
-              </div>
-
-              <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-[#aaa69e]">
-                {interview.feedback?.summary}
-              </p>
-
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                <Link
-                  href={`/repositories/${params.id}/report`}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 border border-amber-400/40 bg-amber-400 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-300"
-                >
-                  <span>View Case Report</span>
-                  <ArrowRight size={16} />
-                </Link>
-                <Link
-                  href={`/repositories/${params.id}`}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-white/[.12] bg-white/[.03] px-5 py-3 text-sm font-medium text-[#c8c4bc] hover:bg-white/[.07] hover:text-white"
-                >
-                  <span>Back to Overview</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Turn-by-turn evaluations */}
-            <div className="space-y-3">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-[#77736c]">
-                Evaluation Breakdown
-              </div>
-              {interview.turns.map((t, i) => (
-                <div
-                  key={t.id}
-                  className="card p-4 reveal"
-                  style={{ animationDelay: `${Math.min(i, 7) * 45}ms` }}
-                >
-                  <div className="flex gap-3">
-                    <span className="font-mono text-[10px] text-amber-400">
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-white">{t.question}</div>
-                      <div className="mt-3 border border-white/[.06] bg-white/[.02] p-3 text-sm leading-6 text-[#aaa69e]">
-                        <span className="font-mono text-[10px] uppercase text-[#77736c] block mb-1">Your Answer:</span>
-                        {t.answer}
-                      </div>
-                      {t.evaluation && (
-                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                          <div className="border border-emerald-400/10 bg-emerald-400/[.04] p-3 text-xs text-[#aaa69e]">
-                            <span className="block font-mono text-[9px] uppercase text-emerald-300">
-                              Turn Score
-                            </span>
-                            <b className="mt-1 block text-lg text-white">
-                              {t.evaluation.score}/100
-                            </b>
-                          </div>
-                          <div className="border border-white/[.06] bg-white/[.02] p-3 text-xs text-[#aaa69e] sm:col-span-2">
-                            <span className="block font-mono text-[9px] uppercase text-amber-300">
-                              Verdict
-                            </span>
-                            <span className="mt-1 block">{t.evaluation.verdict}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          {view === 'results' && currentSession && (
+            <AssessmentResults
+              session={currentSession}
+              analysisId={params.id}
+              onRetake={handleRetake}
+              onViewTeamDashboard={
+                currentSession.team_session_id
+                  ? () => handleOpenTeamDashboard(currentSession.team_session_id!)
+                  : undefined
+              }
+            />
+          )}
+        </div>
       </main>
     </div>
   )
 }
-

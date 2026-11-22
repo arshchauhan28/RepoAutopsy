@@ -194,14 +194,133 @@ export type Analysis = {
   findings: Finding[]
 }
 
-export type Interview = {
+export type AssessableComponent = {
+  id: string
+  name: string
+  layer: string
+  role: string
+  file_count: number
+  total_lines: number
+  technologies: string[]
+  sample_files: string[]
+  has_sufficient_evidence: boolean
+  confidence: string
+}
+
+export type AssessmentTurn = {
+  id: string
+  question_index: number
+  question: string
+  question_type: 'multiple_choice' | 'short_answer' | 'code_interpretation' | 'scenario'
+  category: string
+  difficulty: string
+  options?: string[] | null
+  code_snippet?: string | null
+  relevant_files?: string[] | null
+  selected_option?: number | null
+  answer?: string | null
+  earned_score?: number | null
+  max_score: number
+  evaluation?: any
+  explanation?: string | null
+}
+
+export type AssessmentSession = {
   id: string
   analysis_id: string
-  status: string
+  status: 'active' | 'completed' | 'abandoned'
   current_index: number
   score?: number | null
   feedback?: any
-  turns: { id: string; question_index: number; question: string; answer?: string | null; evaluation?: any }[]
+  assessment_type: 'complete' | 'component' | 'team'
+  scope_type: 'complete' | 'component'
+  selected_components?: string[] | null
+  difficulty: 'beginner' | 'intermediate' | 'advanced'
+  question_count: number
+  evaluation_mode: string
+  category_scores?: Record<string, number> | null
+  participant_name?: string | null
+  team_session_id?: string | null
+  team_member_id?: string | null
+  hackathon_mode?: number
+  hackathon_context?: any
+  turns: AssessmentTurn[]
+}
+
+// Backward-compatibility alias
+export type Interview = AssessmentSession
+
+export type TeamMemberSlot = {
+  id?: string
+  display_name: string
+  assigned_role?: string | null
+  assigned_components: string[]
+  difficulty: string
+  question_count: number
+  status?: string
+  score?: number | null
+  category_scores?: Record<string, number> | null
+  completed_at?: string | null
+}
+
+export type CreateTeamSessionPayload = {
+  analysis_id: string
+  team_name: string
+  description?: string
+  is_hackathon_mode?: boolean
+  hackathon_context?: {
+    problem_statement?: string
+    target_users?: string
+    demo_workflow?: string
+  }
+  members: TeamMemberSlot[]
+}
+
+export type TeamSessionData = {
+  id: string
+  team_name: string
+  description?: string | null
+  status: string
+  is_hackathon_mode: boolean
+  hackathon_context?: any
+  created_at: string
+  total_members: number
+  completed_members: number
+  in_progress_members: number
+  invited_members: number
+  team_average_score?: number | null
+  members: TeamMemberSlot[]
+  coverage_matrix: {
+    component_id: string
+    component_name: string
+    layer: string
+    file_count: number
+    status: 'assessed' | 'in_progress' | 'unassessed'
+    assigned_members: string[]
+    completed_members: string[]
+  }[]
+  team_strengths: string[]
+  team_knowledge_gaps: string[]
+  hackathon_insights: string[]
+  is_organizer?: boolean
+  organizer_token?: string
+  invite_token?: string
+}
+
+export type TeamInviteInfo = {
+  session_id: string
+  analysis_id?: string
+  team_name: string
+  description?: string | null
+  repo_name: string
+  is_hackathon_mode: boolean
+  available_slots: {
+    id: string
+    display_name: string
+    assigned_role?: string | null
+    assigned_components: string[]
+    status: string
+  }[]
 }
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')
@@ -225,7 +344,7 @@ export function getAnalysis(id: string) {
   return request<Analysis>(`/api/v1/analyses/${id}`)
 }
 
-export function startInterview(id: string, question_count = 8) {
+export function startInterview(id: string, question_count = 10) {
   return request<Interview>(`/api/v1/interviews/analysis/${id}`, {
     method: 'POST',
     body: JSON.stringify({ question_count }),
@@ -241,6 +360,73 @@ export function answerInterview(id: string, answer: string) {
     method: 'POST',
     body: JSON.stringify({ answer }),
   })
+}
+
+export function getAssessableComponents(analysisId: string) {
+  return request<AssessableComponent[]>(`/api/v1/interviews/analysis/${analysisId}/components`)
+}
+
+export function startAssessment(analysisId: string, payload: any) {
+  return request<AssessmentSession>(`/api/v1/interviews/analysis/${analysisId}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function answerAssessmentTurn(
+  sessionId: string,
+  payload: { answer?: string; selected_option?: number; question_index?: number }
+) {
+  return request<AssessmentSession>(`/api/v1/interviews/${sessionId}/answer`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function getAssessmentHistory(analysisId: string) {
+  return request<any[]>(`/api/v1/interviews/analysis/${analysisId}/history`)
+}
+
+export function createTeamSession(payload: CreateTeamSessionPayload) {
+  return request<{
+    id: string
+    team_name: string
+    organizer_token: string
+    invite_token: string
+    status: string
+    is_hackathon_mode: boolean
+    invite_url: string
+  }>('/api/v1/interviews/team/sessions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function getTeamSession(sessionId: string, organizerToken?: string) {
+  const url = organizerToken
+    ? `/api/v1/interviews/team/sessions/${sessionId}?organizer_token=${encodeURIComponent(organizerToken)}`
+    : `/api/v1/interviews/team/sessions/${sessionId}`
+  return request<TeamSessionData>(url)
+}
+
+export function getTeamInviteInfo(inviteToken: string) {
+  return request<TeamInviteInfo>(`/api/v1/interviews/team/invite/${inviteToken}`)
+}
+
+export function joinTeamSession(inviteToken: string, payload: { display_name: string; member_id?: string }) {
+  return request<{
+    team_session_id: string
+    member_id: string
+    assessment_session_id: string
+    status: string
+  }>(`/api/v1/interviews/team/join/${inviteToken}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function getTeamSessionsForRepo(analysisId: string) {
+  return request<any[]>(`/api/v1/interviews/team/analysis/${analysisId}/sessions`)
 }
 
 export function getReport(id: string) {
