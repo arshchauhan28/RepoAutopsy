@@ -64,12 +64,16 @@ def build_github_login_url(state: str) -> str:
 async def exchange_github_code(code: str) -> str:
     """
     Exchanges OAuth code for access token.
-    Falls back to mock token in development / test if client secret is not configured.
+    Falls back to mock token in development / test if client secret is not configured
+    or if test/simulated code is provided.
     """
+    if settings.environment in ("development", "test") and (
+        code.startswith("test_") or code.startswith("simulated_") or not settings.github_client_id or not settings.github_client_secret
+    ):
+        logger.info("Using simulated OAuth token for code=%s in %s environment", code, settings.environment)
+        return f"gho_simulated_{code[:12]}"
+
     if not settings.github_client_id or not settings.github_client_secret:
-        if settings.environment in ("development", "test"):
-            logger.info("GitHub OAuth credentials not set; using simulated dev token for code=%s", code)
-            return f"gho_simulated_{code[:12]}"
         raise ValueError("GitHub OAuth credentials not configured on server.")
 
     url = "https://github.com/login/oauth/access_token"

@@ -23,6 +23,10 @@ import { MetricCard } from '@/components/MetricCard'
 import { StatusPill } from '@/components/StatusPill'
 import { AnalyzePRModal } from '@/components/pull_request/AnalyzePRModal'
 import { PRDashboard } from '@/components/pull_request/PRDashboard'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { CardSkeleton } from '@/components/ui/Skeleton'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { Button } from '@/components/ui/Button'
 import { getAnalysis, rerunAnalysis, type Analysis, type PullRequestAnalysis } from '@/lib/api'
 import { groupFindings } from '@/lib/grouping'
 
@@ -128,26 +132,50 @@ export default function RepositoryPage() {
 
   if (error)
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[#08090b]">
         <Nav />
         <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
-          <div className="card border-rose-400/20 bg-rose-400/[.04] p-6 text-sm text-rose-300 reveal">{error}</div>
+          <ErrorState
+            title="Unable to load repository"
+            message={error}
+            onRetry={load}
+          />
         </main>
       </div>
     )
 
   if (!analysis)
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[#08090b]">
         <Nav />
-        <main className="mx-auto max-w-5xl px-4 py-16 text-sm text-[#77736c] sm:px-6 sm:py-20">Loading repository…</main>
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+          <div className="space-y-2">
+            <div className="h-6 w-48 rounded bg-white/[.06] animate-pulse" />
+            <div className="h-4 w-72 rounded bg-white/[.04] animate-pulse" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        </main>
       </div>
     )
 
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: analysis.owner },
+    { label: analysis.repo_name },
+  ]
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#08090b] text-[#f3f4f6]">
       <Nav />
-      <main className="mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 sm:py-8 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 sm:py-8 lg:px-8 space-y-6">
+        {/* BREADCRUMBS */}
+        <Breadcrumbs items={breadcrumbs} />
+
         {/* REPOSITORY TOP HEADER */}
         <div className="reveal flex flex-col gap-4 border-b border-white/[.08] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
@@ -186,40 +214,47 @@ export default function RepositoryPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
               onClick={() => setIsPRModalOpen(true)}
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-indigo-500/40 bg-indigo-500/10 px-3.5 py-2 text-xs font-semibold text-indigo-300 transition hover:bg-indigo-500/20 shadow-sm"
+              variant="secondary"
+              size="sm"
+              leftIcon={<GitPullRequest size={13} className="text-amber-400" />}
               title="Analyze a GitHub Pull Request for this repository"
+              className="border-amber-400/30 hover:border-amber-400/50"
             >
-              <GitPullRequest size={13} />
               Analyze PR
-            </button>
+            </Button>
 
-            <Link
-              href={`/repositories/${analysis.id}/report`}
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-white/[.1] px-3.5 py-2 text-xs font-medium text-[#c8c4bc] transition hover:bg-white/[.04]"
-            >
-              <FileText size={13} />
-              Case Report
+            <Link href={`/repositories/${analysis.id}/report`}>
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<FileText size={13} />}
+              >
+                Case Report
+              </Button>
             </Link>
 
-            <button
+            <Button
               onClick={handleRerun}
-              disabled={rerunning || ['queued', 'running'].includes(analysis.status)}
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-white/[.1] px-3.5 py-2 text-xs font-medium text-[#aaa69e] transition hover:bg-white/[.04] disabled:opacity-40"
+              variant="outline"
+              size="sm"
+              isLoading={rerunning}
+              disabled={['queued', 'running'].includes(analysis.status)}
+              leftIcon={<RefreshCw size={13} />}
               title="Re-run analysis with current code and engine"
             >
-              <RefreshCw size={13} className={rerunning ? 'animate-spin' : ''} />
               {rerunning ? 'Starting…' : 'Re-run'}
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={load}
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-white/[.1] px-3.5 py-2 text-xs font-medium text-[#aaa69e] transition hover:bg-white/[.04]"
+              variant="ghost"
+              size="sm"
             >
               Refresh
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -613,36 +648,54 @@ export default function RepositoryPage() {
             {/* SECTION 05 — CODEVITALS */}
             {/* ========================================================= */}
             {activeSection === 'codevitals' && (
-              <section id="codevitals" className="card p-6 sm:p-8 reveal">
-                <div className="max-w-2xl">
-                  <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.16em] text-emerald-400">
+              <section id="codevitals" className="rounded-xl border border-white/[.1] bg-[#0d0f12] p-6 sm:p-8 space-y-6 reveal">
+                <div className="max-w-3xl space-y-3">
+                  <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.16em] text-amber-400">
                     <BrainCircuit size={16} />
-                    <span>Section 05 / CodeVitals</span>
+                    <span>Section 05 / CodeVitals Assessment</span>
                   </div>
-                  <h2 className="mt-2 text-2xl font-semibold text-white">
-                    How well do you know your codebase?
+                  <h2 className="text-2xl font-semibold text-white">
+                    Defend your codebase knowledge
                   </h2>
-                  <p className="mt-2 text-sm leading-6 text-[#aaa69e]">
-                    Test your understanding of the repository through personalized technical questions and discover areas where your knowledge can improve. Answer questions on system architecture, component tradeoffs, and failure modes to receive comprehensive evaluation and feedback.
+                  <p className="text-sm leading-relaxed text-[#9ca3af]">
+                    CodeVitals evaluates your architectural comprehension, component boundary knowledge, and failure mode defenses through personalized technical questions generated directly from this repository's syntax tree and dependency graph.
                   </p>
+                </div>
 
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <Link
-                      href={`/repositories/${analysis.id}/codevitals`}
-                      className="group inline-flex min-h-11 items-center justify-center gap-2 border border-amber-400/40 bg-amber-400 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-300"
-                    >
-                      <span>Start CodeVitals</span>
-                      <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
-                    </Link>
-
-                    <Link
-                      href={`/repositories/${analysis.id}/report`}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-white/[.12] bg-white/[.03] px-5 py-3 text-sm font-medium text-[#c8c4bc] hover:bg-white/[.07] hover:text-white"
-                    >
-                      <FileText size={14} />
-                      <span>View Case Report</span>
-                    </Link>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
+                  <div className="rounded-lg border border-white/[.08] bg-black/20 p-4 space-y-2">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-amber-400">Mode 01</span>
+                    <h4 className="text-sm font-semibold text-white">Complete Codebase</h4>
+                    <p className="text-xs text-[#9ca3af] leading-relaxed">Broad assessment across all modules, dependencies, and lifecycle flows.</p>
                   </div>
+                  <div className="rounded-lg border border-white/[.08] bg-black/20 p-4 space-y-2">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-amber-400">Mode 02</span>
+                    <h4 className="text-sm font-semibold text-white">Component-Scoped</h4>
+                    <p className="text-xs text-[#9ca3af] leading-relaxed">Deep dive targeted at specific services, APIs, or subsystem boundaries.</p>
+                  </div>
+                  <div className="rounded-lg border border-white/[.08] bg-black/20 p-4 space-y-2">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-amber-400">Mode 03</span>
+                    <h4 className="text-sm font-semibold text-white">Team Evaluation</h4>
+                    <p className="text-xs text-[#9ca3af] leading-relaxed">Collaborative assessment with teammate invites and readiness heatmaps.</p>
+                  </div>
+                  <div className="rounded-lg border border-white/[.08] bg-black/20 p-4 space-y-2">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-amber-400">Mode 04</span>
+                    <h4 className="text-sm font-semibold text-white">Hackathon Readiness</h4>
+                    <p className="text-xs text-[#9ca3af] leading-relaxed">High-tempo evaluation preparing your team for rapid code defense.</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/[.08]">
+                  <Link href={`/repositories/${analysis.id}/codevitals`}>
+                    <Button variant="primary" size="md" rightIcon={<ArrowRight size={14} />}>
+                      Enter CodeVitals Suite
+                    </Button>
+                  </Link>
+                  <Link href={`/repositories/${analysis.id}/report`}>
+                    <Button variant="secondary" size="md" leftIcon={<FileText size={14} />}>
+                      Review Case Report
+                    </Button>
+                  </Link>
                 </div>
               </section>
             )}

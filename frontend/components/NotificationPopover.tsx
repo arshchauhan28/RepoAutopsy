@@ -33,6 +33,14 @@ export function NotificationPopover({ unreadCount, onCountChange }: Notification
     }
   }, [isOpen])
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) setIsOpen(false)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [isOpen])
+
   const handleMarkRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     try {

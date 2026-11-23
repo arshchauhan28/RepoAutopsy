@@ -21,6 +21,14 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { Nav } from '@/components/Nav'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import { Input } from '@/components/ui/Input'
+import { Dialog } from '@/components/ui/Dialog'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { CardSkeleton } from '@/components/ui/Skeleton'
+import { ErrorState } from '@/components/ui/ErrorState'
 import {
   getWorkspace,
   updateWorkspace,
@@ -209,11 +217,14 @@ export default function WorkspaceDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[#08090b]">
         <Nav />
-        <main className="mx-auto max-w-7xl px-4 py-20 text-center sm:px-6 lg:px-8">
-          <Loader2 size={28} className="mx-auto animate-spin text-amber-400" />
-          <p className="mt-3 text-xs text-[#aaa69e]">Loading workspace…</p>
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+          <div className="h-6 w-48 rounded bg-white/[.06] animate-pulse" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
         </main>
       </div>
     )
@@ -221,12 +232,14 @@ export default function WorkspaceDetailPage() {
 
   if (error || !workspace) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[#08090b]">
         <Nav />
         <main className="mx-auto max-w-2xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="card border-rose-500/20 bg-rose-500/[.03] p-6 text-center text-xs text-rose-300">
-            {error || 'Workspace not found.'}
-          </div>
+          <ErrorState
+            title="Workspace Not Found"
+            message={error || 'Unable to load workspace details or you may not have access.'}
+            onRetry={loadData}
+          />
         </main>
       </div>
     )
@@ -234,39 +247,51 @@ export default function WorkspaceDetailPage() {
 
   const canManage = workspace.current_user_role === 'owner' || workspace.current_user_role === 'admin'
 
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Workspaces', href: '/workspaces' },
+    { label: workspace.name },
+  ]
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#08090b] text-[#f3f4f6]">
       <Nav />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+        <Breadcrumbs items={breadcrumbs} />
+
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[.08] pb-6">
           <div>
             <div className="flex items-center gap-2.5">
               <Building2 size={20} className="text-amber-400" />
               <h1 className="text-2xl font-semibold text-white">{workspace.name}</h1>
-              <span className="rounded bg-amber-400/20 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-amber-300">
+              <Badge variant={workspace.current_user_role === 'owner' ? 'accent' : 'warning'}>
                 {workspace.current_user_role}
-              </span>
+              </Badge>
             </div>
-            <p className="mt-1 text-xs text-[#aaa69e]">{workspace.description || 'Collaborative team workspace'}</p>
+            <p className="mt-1 text-xs text-[#9ca3af]">{workspace.description || 'Collaborative team workspace'}</p>
           </div>
 
           <div className="flex items-center gap-2">
             {canManage && (
               <>
-                <button
+                <Button
                   onClick={() => setIsInviteOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded border border-white/[.15] bg-white/[.04] px-3.5 py-2 text-xs font-medium text-white hover:bg-white/[.08] transition"
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<Users size={13} />}
                 >
-                  <Users size={13} /> Invite Teammate
-                </button>
+                  Invite Teammate
+                </Button>
 
-                <button
+                <Button
                   onClick={() => setIsConnectOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded border border-amber-400/40 bg-amber-400 px-4 py-2 text-xs font-semibold text-black hover:bg-amber-300 transition"
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Plus size={14} />}
                 >
-                  <Plus size={14} /> Connect Repo
-                </button>
+                  Connect Repo
+                </Button>
               </>
             )}
           </div>
@@ -534,197 +559,176 @@ export default function WorkspaceDetailPage() {
         )}
 
         {/* CONNECT REPOSITORY MODAL */}
-        {isConnectOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <div className="card w-full max-w-md p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[.08] pb-3">
-                <div className="flex items-center gap-2">
-                  <FolderGit2 size={16} className="text-amber-400" />
-                  <h3 className="font-semibold text-sm text-white">Connect Repository</h3>
-                </div>
-                <button onClick={() => setIsConnectOpen(false)} className="text-[#77736c] hover:text-white">
-                  <X size={16} />
-                </button>
-              </div>
+        <Dialog
+          isOpen={isConnectOpen}
+          onClose={() => setIsConnectOpen(false)}
+          title="Connect Repository"
+          description="Connect a GitHub repository to this workspace to enable automated PR analysis, shared intelligence, and team assessments."
+        >
+          <form onSubmit={handleConnectRepo} className="space-y-4">
+            <Input
+              label="GitHub Repository URL *"
+              type="url"
+              required
+              value={connectUrl}
+              onChange={(e) => setConnectUrl(e.target.value)}
+              placeholder="https://github.com/owner/repository"
+              disabled={connectLoading}
+            />
 
-              <form onSubmit={handleConnectRepo} className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-[11px] font-mono text-[#aaa69e] mb-1">GitHub Repository URL *</label>
-                  <input
-                    type="url"
-                    required
-                    value={connectUrl}
-                    onChange={(e) => setConnectUrl(e.target.value)}
-                    placeholder="https://github.com/owner/repository"
-                    className="w-full rounded border border-white/[.12] bg-[#0c0f13] px-3 py-2 text-white placeholder-[#55514b] focus:border-amber-400/60 focus:outline-none"
-                  />
-                </div>
+            <Input
+              label="Default Branch"
+              type="text"
+              value={connectBranch}
+              onChange={(e) => setConnectBranch(e.target.value)}
+              placeholder="main"
+              disabled={connectLoading}
+            />
 
-                <div>
-                  <label className="block text-[11px] font-mono text-[#aaa69e] mb-1">Default Branch</label>
-                  <input
-                    type="text"
-                    value={connectBranch}
-                    onChange={(e) => setConnectBranch(e.target.value)}
-                    placeholder="main"
-                    className="w-full rounded border border-white/[.12] bg-[#0c0f13] px-3 py-2 text-white placeholder-[#55514b] focus:border-amber-400/60 focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isPrivate"
-                    checked={connectPrivate}
-                    onChange={(e) => setConnectPrivate(e.target.checked)}
-                    className="rounded border-white/20 bg-[#0c0f13]"
-                  />
-                  <label htmlFor="isPrivate" className="text-xs text-[#c8c4bc]">
-                    This is a private repository
-                  </label>
-                </div>
-
-                {connectError && <p className="text-xs text-rose-400">{connectError}</p>}
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsConnectOpen(false)}
-                    className="rounded border border-white/[.1] px-4 py-2 text-xs text-[#aaa69e] hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={connectLoading || !connectUrl.trim()}
-                    className="rounded border border-amber-400/40 bg-amber-400 px-4 py-2 text-xs font-semibold text-black hover:bg-amber-300 disabled:opacity-50"
-                  >
-                    {connectLoading ? 'Connecting…' : 'Connect'}
-                  </button>
-                </div>
-              </form>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isPrivate"
+                checked={connectPrivate}
+                onChange={(e) => setConnectPrivate(e.target.checked)}
+                className="rounded border-white/20 bg-[#0c0f13]"
+              />
+              <label htmlFor="isPrivate" className="text-xs text-[#c8c4bc]">
+                This is a private repository
+              </label>
             </div>
-          </div>
-        )}
+
+            {connectError && <p className="text-xs text-rose-400">{connectError}</p>}
+
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[.08]">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsConnectOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={connectLoading}
+                disabled={!connectUrl.trim()}
+              >
+                Connect Repository
+              </Button>
+            </div>
+          </form>
+        </Dialog>
 
         {/* INVITE TEAMMATE MODAL */}
-        {isInviteOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <div className="card w-full max-w-md p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[.08] pb-3">
+        <Dialog
+          isOpen={isInviteOpen}
+          onClose={() => {
+            setIsInviteOpen(false)
+            setGeneratedInviteUrl(null)
+          }}
+          title="Invite Teammate"
+          description="Generate a shareable invitation token to add an engineering teammate to this workspace."
+        >
+          {generatedInviteUrl ? (
+            <div className="space-y-4 text-xs">
+              <div className="p-3 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                Shareable invitation created! Send this link to your teammate.
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#d1d5db] mb-1.5">Invite Link</label>
                 <div className="flex items-center gap-2">
-                  <Users size={16} className="text-amber-400" />
-                  <h3 className="font-semibold text-sm text-white">Invite Teammate</h3>
+                  <input
+                    type="text"
+                    readOnly
+                    value={generatedInviteUrl}
+                    className="w-full rounded-md border border-white/[.12] bg-[#0c0f13] px-3.5 py-2 text-white font-mono text-xs"
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={handleCopyInvite}
+                    leftIcon={copied ? <Check size={14} /> : <Copy size={14} />}
+                  >
+                    {copied ? 'Copied' : 'Copy'}
+                  </Button>
                 </div>
-                <button
+              </div>
+
+              <div className="flex justify-end pt-3 border-t border-white/[.08]">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => {
                     setIsInviteOpen(false)
                     setGeneratedInviteUrl(null)
                   }}
-                  className="text-[#77736c] hover:text-white"
                 >
-                  <X size={16} />
-                </button>
+                  Done
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleCreateInvite} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-[#d1d5db] mb-1.5">Role</label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  className="w-full rounded-md border border-white/[.12] bg-[#0c0f13] px-3.5 py-2 text-xs text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                >
+                  <option value="member">member (view repos, run analyses, take CodeVitals)</option>
+                  <option value="admin">admin (manage repos, invite members, configure automation)</option>
+                  <option value="viewer">viewer (read-only access)</option>
+                </select>
               </div>
 
-              {generatedInviteUrl ? (
-                <div className="space-y-4 text-xs">
-                  <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px]">
-                    Shareable invitation created! Send this link to your teammate.
-                  </div>
+              <Input
+                label="Target Email (Optional)"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="teammate@company.com"
+                disabled={inviteLoading}
+              />
 
-                  <div>
-                    <label className="block text-[11px] font-mono text-[#aaa69e] mb-1">Invite Link</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        readOnly
-                        value={generatedInviteUrl}
-                        className="w-full rounded border border-white/[.12] bg-[#0c0f13] px-3 py-2 text-white font-mono text-[11px]"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleCopyInvite}
-                        className="rounded border border-amber-400/40 bg-amber-400 px-3 py-2 text-black hover:bg-amber-300 shrink-0"
-                      >
-                        {copied ? <Check size={14} /> : <Copy size={14} />}
-                      </button>
-                    </div>
-                  </div>
+              <Input
+                label="Target GitHub Username (Optional)"
+                type="text"
+                value={inviteUsername}
+                onChange={(e) => setInviteUsername(e.target.value)}
+                placeholder="octocat"
+                disabled={inviteLoading}
+              />
 
-                  <div className="flex justify-end pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsInviteOpen(false)
-                        setGeneratedInviteUrl(null)
-                      }}
-                      className="rounded border border-white/[.15] bg-white/[.04] px-4 py-2 text-xs font-semibold text-white hover:bg-white/[.08]"
-                    >
-                      Done
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleCreateInvite} className="space-y-4 text-xs">
-                  <div>
-                    <label className="block text-[11px] font-mono text-[#aaa69e] mb-1">Role</label>
-                    <select
-                      value={inviteRole}
-                      onChange={(e) => setInviteRole(e.target.value)}
-                      className="w-full rounded border border-white/[.12] bg-[#0c0f13] px-3 py-2 text-white focus:outline-none"
-                    >
-                      <option value="member">member (view repos, run analyses, take CodeVitals)</option>
-                      <option value="admin">admin (manage repos, invite members, configure automation)</option>
-                      <option value="viewer">viewer (read-only access)</option>
-                    </select>
-                  </div>
+              {inviteError && <p className="text-xs text-rose-400">{inviteError}</p>}
 
-                  <div>
-                    <label className="block text-[11px] font-mono text-[#aaa69e] mb-1">Target Email (Optional)</label>
-                    <input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="teammate@company.com"
-                      className="w-full rounded border border-white/[.12] bg-[#0c0f13] px-3 py-2 text-white placeholder-[#55514b] focus:border-amber-400/60 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-mono text-[#aaa69e] mb-1">Target GitHub Username (Optional)</label>
-                    <input
-                      type="text"
-                      value={inviteUsername}
-                      onChange={(e) => setInviteUsername(e.target.value)}
-                      placeholder="octocat"
-                      className="w-full rounded border border-white/[.12] bg-[#0c0f13] px-3 py-2 text-white placeholder-[#55514b] focus:border-amber-400/60 focus:outline-none"
-                    />
-                  </div>
-
-                  {inviteError && <p className="text-xs text-rose-400">{inviteError}</p>}
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsInviteOpen(false)}
-                      className="rounded border border-white/[.1] px-4 py-2 text-xs text-[#aaa69e] hover:text-white"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={inviteLoading}
-                      className="rounded border border-amber-400/40 bg-amber-400 px-4 py-2 text-xs font-semibold text-black hover:bg-amber-300 disabled:opacity-50"
-                    >
-                      {inviteLoading ? 'Generating…' : 'Generate Invite Link'}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        )}
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[.08]">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsInviteOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={inviteLoading}
+                >
+                  Generate Invite Link
+                </Button>
+              </div>
+            </form>
+          )}
+        </Dialog>
       </main>
     </div>
   )

@@ -19,6 +19,12 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { Nav } from '@/components/Nav'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import { Skeleton, CardSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { getDashboardSummary, type DashboardSummary } from '@/lib/api'
 
 export default function DashboardPage() {
@@ -45,11 +51,23 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[#08090b]">
         <Nav />
-        <main className="mx-auto max-w-7xl px-4 py-20 text-center sm:px-6 lg:px-8">
-          <Loader2 size={28} className="mx-auto animate-spin text-amber-400" />
-          <p className="mt-3 text-xs text-[#aaa69e]">Loading your developer dashboard…</p>
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex items-center gap-4">
+            <Skeleton variant="circular" className="h-12 w-12" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
         </main>
       </div>
     )
@@ -57,21 +75,22 @@ export default function DashboardPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[#08090b]">
         <Nav />
         <main className="mx-auto max-w-2xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="card border-rose-500/20 bg-rose-500/[.03] p-6 text-center space-y-4">
-            <h2 className="text-base font-semibold text-rose-300">Authentication Required</h2>
-            <p className="text-xs text-[#aaa69e] leading-relaxed">
-              {error || 'You must be signed in with your GitHub account to access persistent workspaces and dashboard features.'}
+          <div className="rounded-xl border border-white/[.1] bg-[#0d0f12] p-8 text-center space-y-4 shadow-xl">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-amber-400/10 text-amber-400">
+              <Building2 size={24} />
+            </div>
+            <h2 className="text-lg font-semibold text-white">Authentication Required</h2>
+            <p className="text-xs text-[#9ca3af] leading-relaxed max-w-md mx-auto">
+              {error || 'Sign in with your GitHub account to access persistent workspaces, connected repositories, and automated PR review dashboards.'}
             </p>
             <div className="pt-2 flex justify-center gap-3">
-              <Link
-                href="/analyze"
-                className="inline-flex items-center gap-1.5 rounded border border-white/[.15] bg-white/[.04] px-4 py-2 text-xs font-semibold text-white hover:bg-white/[.08] transition"
-              >
-                <span>Guest Analysis</span>
-                <ArrowRight size={13} />
+              <Link href="/analyze">
+                <Button variant="secondary" size="md">
+                  Continue as Guest
+                </Button>
               </Link>
             </div>
           </div>

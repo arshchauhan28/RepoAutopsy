@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Building2, Plus, ArrowRight, Users, FolderGit2, Shield, Loader2, X, Check } from 'lucide-react'
 import { Nav } from '@/components/Nav'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Badge } from '@/components/ui/Badge'
+import { Dialog } from '@/components/ui/Dialog'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { CardSkeleton } from '@/components/ui/Skeleton'
 import { getWorkspaces, createWorkspace, joinWorkspace, type Workspace } from '@/lib/api'
 
 export default function WorkspacesPage() {
@@ -83,35 +90,43 @@ export default function WorkspacesPage() {
     }
   }
 
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Workspaces' },
+  ]
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#08090b] text-[#f3f4f6]">
       <Nav />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+        <Breadcrumbs items={breadcrumbs} />
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[.08] pb-6">
           <div>
             <div className="flex items-center gap-2">
               <Building2 size={20} className="text-amber-400" />
               <h1 className="text-2xl font-semibold tracking-tight text-white">Workspaces</h1>
             </div>
-            <p className="mt-1 text-xs text-[#aaa69e]">
+            <p className="mt-1 text-xs text-[#9ca3af]">
               Manage collaborative team workspaces, share repository analysis history, and configure pull request automation.
             </p>
           </div>
 
-          <button
+          <Button
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-amber-400/40 bg-amber-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-300"
+            variant="primary"
+            size="md"
+            leftIcon={<Plus size={14} />}
           >
-            <Plus size={14} />
-            <span>New Team Workspace</span>
-          </button>
+            New Team Workspace
+          </Button>
         </div>
 
         {/* JOIN WORKSPACE BOX */}
-        <div className="card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="rounded-lg border border-white/[.08] bg-[#0d0f12] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="text-xs font-semibold text-white">Have an invitation token?</div>
-            <div className="text-[11px] text-[#77736c]">Enter your shareable invite token or URL to join an existing team.</div>
+            <div className="text-xs text-[#9ca3af]">Enter your shareable invite token or URL to join an existing team.</div>
           </div>
           <form onSubmit={handleJoin} className="flex items-center gap-2 w-full sm:w-auto">
             <input
@@ -119,85 +134,81 @@ export default function WorkspacesPage() {
               value={inviteToken}
               onChange={(e) => setInviteToken(e.target.value)}
               placeholder="Paste invite token or link"
-              className="rounded border border-white/[.12] bg-[#0c0f13] px-3 py-1.5 text-xs text-white placeholder-[#55514b] focus:border-amber-400/60 focus:outline-none w-full sm:w-64 font-mono text-[11px]"
+              className="rounded-md border border-white/[.12] bg-[#0c0f13] px-3 py-2 text-xs text-white placeholder-[#6b7280] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 w-full sm:w-64 font-mono text-[11px]"
             />
-            <button
+            <Button
               type="submit"
+              variant="secondary"
+              size="sm"
               disabled={joinLoading || !inviteToken.trim()}
-              className="rounded border border-white/[.15] bg-white/[.04] px-3.5 py-1.5 text-xs font-medium text-white hover:bg-white/[.08] disabled:opacity-40 shrink-0"
+              isLoading={joinLoading}
             >
-              {joinLoading ? 'Joining…' : 'Join'}
-            </button>
+              Join
+            </Button>
           </form>
           {joinError && <p className="text-xs text-rose-400 w-full sm:col-span-2">{joinError}</p>}
         </div>
 
         {/* WORKSPACES GRID */}
         {loading ? (
-          <div className="py-20 text-center">
-            <Loader2 size={24} className="mx-auto animate-spin text-amber-400" />
-            <p className="mt-3 text-xs text-[#77736c]">Loading workspaces…</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
           </div>
         ) : error ? (
-          <div className="card border-rose-500/20 bg-rose-500/[.03] p-6 text-center text-xs text-rose-300">
+          <div className="rounded-lg border border-rose-500/20 bg-rose-500/[.03] p-6 text-center text-xs text-rose-300">
             {error}
           </div>
         ) : workspaces.length === 0 ? (
-          <div className="card p-12 text-center text-xs text-[#aaa69e] space-y-3">
-            <Building2 size={32} className="mx-auto text-[#77736c]" />
-            <p className="text-sm font-semibold text-white">No workspaces found</p>
-            <p className="max-w-md mx-auto text-[#77736c]">
-              Create a team workspace to invite teammates, share private codebase reports, and automate PR autopsies.
-            </p>
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="mt-2 inline-flex items-center gap-1.5 rounded border border-amber-400/40 bg-amber-400 px-4 py-2 text-xs font-semibold text-black hover:bg-amber-300"
-            >
-              <Plus size={14} /> Create First Workspace
-            </button>
-          </div>
+          <EmptyState
+            icon={<Building2 size={24} className="text-[#9ca3af]" />}
+            title="No workspaces found"
+            description="Create a team workspace to invite teammates, share private codebase reports, and automate PR autopsies."
+            action={
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setIsCreateOpen(true)}
+                leftIcon={<Plus size={14} />}
+              >
+                Create First Workspace
+              </Button>
+            }
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {workspaces.map((ws) => (
               <Link
                 key={ws.id}
                 href={`/workspaces/${ws.id}`}
-                className="card p-5 flex flex-col justify-between hover:border-white/20 transition group"
+                className="rounded-lg border border-white/[.08] bg-[#0d0f12] p-5 flex flex-col justify-between hover:border-amber-400/40 transition-colors group"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm text-white group-hover:text-amber-300 transition">
+                    <span className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">
                       {ws.name}
                     </span>
-                    <span
-                      className={`px-2 py-0.5 rounded font-mono text-[9px] uppercase font-bold ${
+                    <Badge
+                      variant={
                         ws.current_user_role === 'owner'
-                          ? 'bg-amber-400/20 text-amber-300'
+                          ? 'accent'
                           : ws.current_user_role === 'admin'
-                          ? 'bg-indigo-400/20 text-indigo-300'
-                          : 'bg-white/[.08] text-[#aaa69e]'
-                      }`}
+                          ? 'warning'
+                          : 'neutral'
+                      }
                     >
-                      {ws.current_user_role}
-                    </span>
+                      {ws.current_user_role || 'member'}
+                    </Badge>
                   </div>
-
-                  <p className="mt-2 text-xs text-[#aaa69e] line-clamp-2 leading-relaxed">
-                    {ws.description || 'Collaborative developer workspace'}
+                  <p className="mt-2 text-xs text-[#9ca3af] line-clamp-2">
+                    {ws.description || 'Collaborative team workspace'}
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/[.06] flex items-center justify-between text-xs font-mono text-[#77736c]">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <Users size={12} /> {ws.member_count} member{ws.member_count === 1 ? '' : 's'}
-                    </span>
-                    <span>·</span>
-                    <span className="flex items-center gap-1">
-                      <FolderGit2 size={12} /> {ws.repository_count} repo{ws.repository_count === 1 ? '' : 's'}
-                    </span>
-                  </div>
-                  <ArrowRight size={14} className="text-[#77736c] group-hover:translate-x-0.5 transition-transform" />
+                <div className="mt-6 pt-3 border-t border-white/[.06] flex items-center justify-between text-xs text-[#9ca3af]">
+                  <span className="capitalize font-mono text-[10px]">{ws.workspace_type} Workspace</span>
+                  <ArrowRight size={14} className="text-[#6b7280] group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </Link>
             ))}
@@ -205,65 +216,56 @@ export default function WorkspacesPage() {
         )}
 
         {/* CREATE WORKSPACE MODAL */}
-        {isCreateOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <div className="card w-full max-w-md p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[.08] pb-3">
-                <div className="flex items-center gap-2">
-                  <Building2 size={16} className="text-amber-400" />
-                  <h3 className="font-semibold text-sm text-white">Create Team Workspace</h3>
-                </div>
-                <button onClick={() => setIsCreateOpen(false)} className="text-[#77736c] hover:text-white">
-                  <X size={16} />
-                </button>
-              </div>
+        <Dialog
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          title="Create Team Workspace"
+          description="Workspaces allow your team to share codebase intelligence, review PR autopsies, and run collaborative assessments."
+        >
+          <form onSubmit={handleCreate} className="space-y-4">
+            <Input
+              label="Workspace Name *"
+              required
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder="e.g. Core Engineering, Hackathon Alpha"
+              disabled={createLoading}
+            />
 
-              <form onSubmit={handleCreate} className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-[11px] font-mono text-[#aaa69e] mb-1">Workspace Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={createName}
-                    onChange={(e) => setCreateName(e.target.value)}
-                    placeholder="e.g. Core Engineering, Hackathon Alpha"
-                    className="w-full rounded border border-white/[.12] bg-[#0c0f13] px-3 py-2 text-white placeholder-[#55514b] focus:border-amber-400/60 focus:outline-none text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-mono text-[#aaa69e] mb-1">Description (Optional)</label>
-                  <textarea
-                    rows={2}
-                    value={createDesc}
-                    onChange={(e) => setCreateDesc(e.target.value)}
-                    placeholder="Team purpose and codebase focus"
-                    className="w-full rounded border border-white/[.12] bg-[#0c0f13] px-3 py-2 text-white placeholder-[#55514b] focus:border-amber-400/60 focus:outline-none text-xs"
-                  />
-                </div>
-
-                {createError && <p className="text-xs text-rose-400">{createError}</p>}
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateOpen(false)}
-                    className="rounded border border-white/[.1] px-4 py-2 text-xs text-[#aaa69e] hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createLoading || !createName.trim()}
-                    className="rounded border border-amber-400/40 bg-amber-400 px-4 py-2 text-xs font-semibold text-black hover:bg-amber-300 disabled:opacity-50"
-                  >
-                    {createLoading ? 'Creating…' : 'Create Workspace'}
-                  </button>
-                </div>
-              </form>
+            <div>
+              <label className="block text-xs font-medium text-[#d1d5db] mb-1.5">Description (Optional)</label>
+              <textarea
+                rows={3}
+                value={createDesc}
+                onChange={(e) => setCreateDesc(e.target.value)}
+                placeholder="Team purpose and codebase focus"
+                className="w-full rounded-md border border-white/[.12] bg-black/30 px-3.5 py-2 text-sm text-white placeholder-[#6b7280] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              />
             </div>
-          </div>
-        )}
+
+            {createError && <p className="text-xs text-rose-400">{createError}</p>}
+
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[.08]">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCreateOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={createLoading}
+                disabled={!createName.trim()}
+              >
+                Create Workspace
+              </Button>
+            </div>
+          </form>
+        </Dialog>
       </main>
     </div>
   )

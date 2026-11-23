@@ -107,11 +107,16 @@ export function PRDashboard({ pr, onBackToRepo }: PRDashboardProps) {
 
         {/* PR Identity */}
         <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-bold text-amber-400">
-              PR #{pr.pr_number}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold text-amber-400">
+                PR #{pr.pr_number}
+              </span>
+              <span className="text-sm font-semibold text-white truncate max-w-md">{pr.pr_title}</span>
+            </div>
+            <span className="rounded border border-white/[.1] bg-white/[.03] px-2.5 py-0.5 font-mono text-[10px] text-[#9ca3af]">
+              Scope: {pr.analysis_coverage || pr.summary?.analysis_coverage || 'Changed-File with Dependency Graph Analysis'}
             </span>
-            <span className="text-sm font-semibold text-white truncate">{pr.pr_title}</span>
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-xs text-[#77736c]">

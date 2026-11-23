@@ -20,6 +20,10 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { Nav } from '@/components/Nav'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
+import { Button } from '@/components/ui/Button'
+import { CardSkeleton } from '@/components/ui/Skeleton'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { getReport } from '@/lib/api'
 import { groupFindings } from '@/lib/grouping'
 
@@ -41,20 +45,30 @@ export default function ReportPage() {
 
   if (error)
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[#08090b]">
         <Nav />
-        <main className="mx-auto max-w-4xl px-4 py-16 text-sm text-rose-300 sm:px-6">
-          <div className="card border-rose-400/20 bg-rose-400/[.04] p-6">{error}</div>
+        <main className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
+          <ErrorState
+            title="Unable to load report"
+            message={error}
+            onRetry={() => window.location.reload()}
+          />
         </main>
       </div>
     )
 
   if (!report)
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-[#08090b]">
         <Nav />
-        <main className="mx-auto max-w-4xl px-4 py-16 text-sm text-[#77736c] sm:px-6">
-          Building comprehensive Case Report…
+        <main className="mx-auto max-w-4xl px-4 py-16 sm:px-6 space-y-6">
+          <div className="h-6 w-48 rounded bg-white/[.06] animate-pulse" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
         </main>
       </div>
     )
@@ -79,24 +93,30 @@ export default function ReportPage() {
   const coverage = report.architecture?.coverage
   const interview = report.interview
 
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: report.repository.owner },
+    { label: report.repository.name, href: `/repositories/${params.id}` },
+    { label: 'Case Report' },
+  ]
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#08090b] text-[#f3f4f6]">
       <Nav />
-      <main className="mx-auto max-w-5xl px-4 py-7 pb-20 sm:px-6 sm:py-10 sm:pb-24">
+      <main className="mx-auto max-w-5xl px-4 py-7 pb-20 sm:px-6 sm:py-10 sm:pb-24 space-y-6">
         {/* Navigation & Print Controls */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Link
-            href={`/repositories/${params.id}`}
-            className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-[#66625b] transition hover:text-white"
-          >
-            <ArrowLeft size={14} /> Back to repository
-          </Link>
-          <button
+          <Breadcrumbs items={breadcrumbs} />
+
+          <Button
             onClick={() => window.print()}
-            className="print-hide inline-flex min-h-10 items-center justify-center gap-2 border border-white/[.1] bg-white/[.02] px-4 py-2 text-xs font-medium text-[#aaa69e] transition hover:bg-white/[.06] hover:text-white"
+            variant="secondary"
+            size="sm"
+            leftIcon={<Download size={14} />}
+            className="print-hide shrink-0"
           >
-            <Download size={14} /> Print / Save PDF Report
-          </button>
+            Print / Save PDF Report
+          </Button>
         </div>
 
         {/* 1. REPOSITORY SUMMARY HEADER */}

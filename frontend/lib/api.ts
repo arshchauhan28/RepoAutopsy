@@ -659,6 +659,7 @@ export type PullRequestAnalysis = {
   deletions: number
   review_priority: 'high' | 'medium' | 'low'
   review_priority_reasons: string[]
+  analysis_coverage?: string
   summary?: {
     pr_number: number
     title: string
@@ -671,6 +672,7 @@ export type PullRequestAnalysis = {
     new_regressions_count: number
     resolved_findings_count: number
     executive_summary: string
+    analysis_coverage?: string
   } | null
   changed_files: PRChangedFile[]
   change_impacts: PRChangeImpact[]

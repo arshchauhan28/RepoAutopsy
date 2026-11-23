@@ -91,6 +91,7 @@ def test_oauth_callback_blocks_missing_or_mismatched_state_cookie(client, db_ses
     resp2 = client.post("/api/v1/auth/callback", json={"code": "test_code", "state": state2})
     assert resp2.status_code == 400
     assert "cookie mismatch" in resp2.json()["detail"]
+    client.cookies.clear()
 
 
 def test_oauth_callback_succeeds_with_matching_state_cookie(client, db_session):

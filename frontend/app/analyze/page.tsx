@@ -1,15 +1,173 @@
 'use client'
-import { FormEvent, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowRight, Github, Loader2, ShieldCheck } from 'lucide-react'
+
+import React, { FormEvent, useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ArrowRight, Github, Loader2, ShieldCheck, AlertCircle, Sparkles } from 'lucide-react'
 import { Nav } from '@/components/Nav'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { createAnalysis } from '@/lib/api'
 
+function AnalyzeContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [url, setUrl] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [stage, setStage] = useState<'idle' | 'validating' | 'starting'>('idle')
+
+  useEffect(() => {
+    const queryUrl = searchParams.get('url')
+    if (queryUrl) {
+      setUrl(queryUrl)
+    }
+  }, [searchParams])
+
+  const validateUrl = (input: string): boolean => {
+    const githubRegex = /^https?:\/\/github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/?.*$/
+    return githubRegex.test(input.trim())
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setError('')
+    const cleanUrl = url.trim()
+
+    if (!cleanUrl) {
+      setError('Please provide a GitHub repository URL.')
+      return
+    }
+
+    if (!validateUrl(cleanUrl)) {
+      setError('Invalid format. Please enter a valid GitHub URL, e.g. https://github.com/owner/repository')
+      return
+    }
+
+    setLoading(true)
+    setStage('starting')
+
+    try {
+      const result = await createAnalysis(cleanUrl)
+      router.push(`/repositories/${result.id}`)
+    } catch (err: any) {
+      setError(err?.message || 'Unable to start analysis. The repository might be private, not found, or rate-limited.')
+      setStage('idle')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const sampleRepositories = [
+    { label: 'fastapi/fastapi', url: 'https://github.com/fastapi/fastapi' },
+    { label: 'pallets/flask', url: 'https://github.com/pallets/flask' },
+    { label: 'expressjs/express', url: 'https://github.com/expressjs/express' },
+  ]
+
+  return (
+    <div className="min-h-screen bg-[#08090b] text-[#f3f4f6]">
+      <Nav />
+      <main className="mx-auto flex min-h-[calc(100vh-56px)] max-w-3xl flex-col justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="space-y-6">
+          <div>
+            <span className="font-mono text-xs uppercase tracking-widest text-amber-400">
+              New Repository Analysis
+            </span>
+            <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-white">
+              Inspect any GitHub repository
+            </h1>
+            <p className="mt-3 text-sm text-[#9ca3af] leading-relaxed">
+              RepoAutopsy fetches the codebase safely, builds an interactive anatomy graph of subsystems, evaluates quality findings, and prepares a Case Report.
+            </p>
+          </div>
+
+          <form
+            onSubmit={submit}
+            className="rounded-xl border border-white/[.1] bg-[#0d0f12] p-6 sm:p-8 space-y-5 shadow-2xl"
+          >
+            <div>
+              <Input
+                label="GitHub Repository URL"
+                type="url"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value)
+                  if (error) setError('')
+                }}
+                placeholder="https://github.com/owner/repository"
+                leftIcon={<Github size={16} />}
+                disabled={loading}
+                autoFocus
+                required
+                className="h-12 bg-black/40 text-sm"
+              />
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                className="rounded-md border border-rose-500/30 bg-rose-500/[.06] p-3.5 text-xs text-rose-300 flex items-start gap-2"
+              >
+                <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-400" />
+                <div className="space-y-1">
+                  <p className="font-medium">Analysis couldn't be started</p>
+                  <p className="text-rose-300/80 leading-relaxed">{error}</p>
+                </div>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              isLoading={loading}
+              className="w-full h-12"
+            >
+              {loading ? 'Queuing Analysis…' : 'Start Codebase Analysis'}
+            </Button>
+
+            <div className="flex items-center justify-between pt-2 border-t border-white/[.06] text-xs text-[#9ca3af]">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <ShieldCheck size={14} />
+                <span>Deterministic AST Inspection</span>
+              </span>
+              <span className="text-[#6b7280]">Supports TypeScript, Python, JavaScript, Go</span>
+            </div>
+          </form>
+
+          {/* QUICK SAMPLES */}
+          <div className="space-y-2 pt-2">
+            <span className="text-xs font-mono text-[#6b7280] uppercase tracking-wider">
+              Or explore popular open-source repositories:
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {sampleRepositories.map((sample) => (
+                <button
+                  key={sample.url}
+                  type="button"
+                  onClick={() => setUrl(sample.url)}
+                  className="rounded-md border border-white/[.08] bg-white/[.02] px-3 py-1.5 font-mono text-xs text-[#9ca3af] hover:border-amber-400/40 hover:text-white transition-colors"
+                >
+                  {sample.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
 export default function AnalyzePage() {
-  const router = useRouter(); const [url,setUrl]=useState(''); const [error,setError]=useState(''); const [loading,setLoading]=useState(false)
-  async function submit(e:FormEvent){e.preventDefault();setError('');setLoading(true);try{const result=await createAnalysis(url.trim());router.push(`/repositories/${result.id}`)}catch(err:any){setError(err.message||'Unable to start analysis')}finally{setLoading(false)}}
-  return <div className="min-h-screen"><Nav/><main className="mx-auto flex min-h-[calc(100vh-56px)] max-w-4xl items-start px-4 py-12 sm:px-6 sm:py-20 lg:px-8 lg:items-center"><div className="w-full reveal"><div className="font-mono text-[10px] uppercase tracking-[.18em] text-amber-400">/ new analysis</div><h1 className="mt-3 text-[2.35rem] font-semibold tracking-[-.04em] sm:text-5xl">Bring a repository.</h1><p className="mt-4 max-w-2xl text-sm leading-6 text-[#77736c] sm:text-base">RepoAutopsy will fetch the public GitHub repository, inspect its structure and prepare a technical review.</p>
-    <form onSubmit={submit} className="card relative mt-8 overflow-hidden p-4 sm:mt-10 sm:p-7"><div className="scan-overlay opacity-40"/><label className="relative text-sm font-medium text-[#d7d3cb]">GitHub repository URL</label><div className="relative mt-3 flex min-h-14 items-center gap-2 border border-white/[.1] bg-black/20 px-3 transition focus-within:border-amber-400/40 sm:px-4"><Github size={17} className="shrink-0 text-[#66625b]"/><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://github.com/owner/repository" className="min-w-0 flex-1 bg-transparent py-3 text-sm text-white outline-none placeholder:text-[#4f4c47]" required/></div>{error&&<div className="relative mt-3 border border-rose-400/20 bg-rose-400/[.06] p-3 text-sm leading-5 text-rose-300">{error}</div>}<button disabled={loading} className="relative mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 border border-amber-400/40 bg-amber-400 px-5 py-3 text-sm font-semibold text-black transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50">{loading?<Loader2 size={17} className="animate-spin"/>:<ArrowRight size={17}/>} {loading?'Starting analysis…':'Analyze repository'}</button><div className="relative mt-4 flex items-start gap-2 border-t border-white/[.07] pt-4 text-[11px] leading-5 text-[#66625b]"><ShieldCheck size={14} className="mt-0.5 shrink-0 text-emerald-400"/>Only GitHub repository URLs are accepted. File-count, size and path-safety limits are applied before processing.</div></form>
-    <div className="mt-5 grid gap-2 text-[10px] font-mono uppercase tracking-wider text-[#55514b] sm:grid-cols-3"><div className="border border-white/[.07] px-3 py-2">01 · Fetch</div><div className="border border-white/[.07] px-3 py-2">02 · Diagnostics</div><div className="border border-white/[.07] px-3 py-2">03 · CodeVitals</div></div>
-  </div></main></div>
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#08090b]">
+          <Nav />
+        </div>
+      }
+    >
+      <AnalyzeContent />
+    </Suspense>
+  )
 }
