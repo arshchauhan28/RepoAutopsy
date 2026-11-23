@@ -232,7 +232,7 @@ export type AssessmentTurn = {
   id: string
   question_index: number
   question: string
-  question_type: 'multiple_choice' | 'short_answer' | 'code_interpretation' | 'scenario'
+  question_type: 'multiple_choice' | 'short_answer' | 'code_interpretation' | 'code_understanding' | 'scenario' | string
   category: string
   difficulty: string
   options?: string[] | null
@@ -245,9 +245,16 @@ export type AssessmentTurn = {
   evaluation?: any
   explanation?: string | null
   rubric?: any
-  evidence_confidence?: 'high' | 'medium' | 'insufficient'
+  evidence_confidence?: 'high' | 'medium' | 'insufficient' | string
   retry_count?: number
   user_notes?: string | null
+  question_version?: string
+  source_reference?: {
+    file_path?: string | null
+    symbol?: string | null
+    evidence_type?: string | null
+  } | null
+  disclaimer?: string | null
 }
 
 export type AssessmentSession = {
@@ -679,6 +686,7 @@ export type PullRequestAnalysis = {
   review_priority: 'high' | 'medium' | 'low'
   review_priority_reasons: string[]
   analysis_coverage?: string
+  comparison_scope?: 'full_base_head' | 'changed_files_with_ast_context' | 'partial_patch' | string
   summary?: {
     pr_number: number
     title: string

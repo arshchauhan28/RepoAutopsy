@@ -11,13 +11,21 @@ logger = logging.getLogger(__name__)
 
 
 def process_analysis_job(db: Session, job_id: str) -> bool:
-    job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
-    if not job or job.status not in ("queued", "failed"):
+    # Atomic job claiming: only transition if status is 'queued' or 'failed'
+    now = datetime.utcnow()
+    rows_claimed = (
+        db.query(AnalysisJob)
+        .filter(AnalysisJob.id == job_id, AnalysisJob.status.in_(["queued", "failed"]))
+        .update({"status": "running", "started_at": now}, synchronize_session="fetch")
+    )
+    db.commit()
+    if rows_claimed == 0:
+        logger.info("Job %s could not be claimed (already running, completed, or missing).", job_id)
         return False
 
-    job.status = "running"
-    job.started_at = datetime.utcnow()
-    db.commit()
+    job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
+    if not job:
+        return False
 
     try:
         # Load repo or base analysis

@@ -229,12 +229,12 @@ def validate_question(
         if sym_match:
             referenced_sym = sym_match.group(1).lower()
             # If symbol looks like a function/class name, verify against symbol table or files
-            if referenced_sym not in {"get", "post", "put", "delete", "true", "false", "none"}:
+            if referenced_sym not in {"get", "post", "put", "delete", "true", "false", "none", "args", "kwargs"}:
                 has_sym = any(referenced_sym in s.lower() for s in symbol_table)
                 has_file_sym = any(referenced_sym in f.lower() for f in files)
                 if not has_sym and not has_file_sym and len(symbol_table) > 0:
-                    # Unverified symbol reference
-                    pass
+                    # Unverified phantom symbol reference -> reject question
+                    return False
 
     # Ensure rubric has key concepts
     rubric = q.get("rubric") or {}
@@ -617,6 +617,140 @@ def _build_deterministic_question_bank(
                     },
                 })
 
+    # --- H. DATA FLOW & API BEHAVIOR (SPRINT 7) ---
+    for comp in assessable_components:
+        subcomps = comp.get("subcomponents", [])
+        routes_sc = next((sc for sc in subcomps if "routes" in sc["id"] or "api" in sc["id"]), None)
+        models_sc = next((sc for sc in subcomps if "models" in sc["id"] or "services" in sc["id"]), None)
+        if routes_sc and models_sc and routes_sc["files"] and models_sc["files"]:
+            route_f = routes_sc["files"][0]
+            model_f = models_sc["files"][0]
+            bank.append({
+                "id": f"q_dataflow_{comp['id']}",
+                "scope": comp["id"],
+                "category": "data_flow",
+                "difficulty": "intermediate",
+                "question_type": "scenario",
+                "question": f"Trace the data flow from an incoming client request in '{route_f}' through the business/data layer in '{model_f}'. What validations and state transformations occur?",
+                "options": None,
+                "correct_option": None,
+                "relevant_files": [route_f, model_f],
+                "evidence": f"Subcomponent link: API handler {route_f} interacts with {model_f}.",
+                "evidence_confidence": "high",
+                "explanation": f"Requests enter through {route_f}, undergo schema validation, invoke service logic, and persist via {model_f}.",
+                "rubric": {
+                    "key_concepts": ["request validation", "data transfer", "schema", "persistence", comp["name"]],
+                    "minimum_points": 2,
+                },
+            })
+
+    # --- I. ERROR HANDLING & RESILIENCE (SPRINT 7) ---
+    for comp in assessable_components:
+        sample_files = comp.get("sample_files", [])
+        if sample_files:
+            sf = sample_files[0]
+            bank.append({
+                "id": f"q_error_handling_{comp['id']}",
+                "scope": comp["id"],
+                "category": "error_handling",
+                "difficulty": "intermediate",
+                "question_type": "short_answer",
+                "question": f"In module '{sf}' ({comp['name']}), what exception handling or input validation patterns are used to prevent unhandled runtime errors?",
+                "options": None,
+                "correct_option": None,
+                "relevant_files": [sf],
+                "evidence": f"Module '{sf}' within {comp['name']}.",
+                "evidence_confidence": "high",
+                "explanation": "Robust components validate preconditions, handle external failures gracefully, and return standard error responses.",
+                "rubric": {
+                    "key_concepts": ["exception handling", "validation", "error boundaries", "resilience"],
+                    "minimum_points": 2,
+                },
+            })
+
+    # --- J. CONFIGURATION & RUNTIME ENVIRONMENT (SPRINT 7) ---
+    manifest_files = [f for f in (analysis.architecture or {}).get("overview_nodes", []) if any(k in str(f).lower() for k in ["config", "package.json", "requirements", "settings", "env"])]
+    if manifest_files:
+        cfg_node = manifest_files[0]
+        cfg_name = cfg_node.get("label", "configuration") if isinstance(cfg_node, dict) else str(cfg_node)
+        bank.append({
+            "id": "q_config_runtime",
+            "scope": "comp-config" if "comp-config" in comp_map else "complete",
+            "category": "configuration",
+            "difficulty": "beginner",
+            "question_type": "short_answer",
+            "question": f"How is environment configuration or external dependency management established via '{cfg_name}' in this repository?",
+            "options": None,
+            "correct_option": None,
+            "relevant_files": [cfg_name] if "/" in cfg_name or "." in cfg_name else [],
+            "evidence": f"Repository configuration manifest: {cfg_name}.",
+            "evidence_confidence": "high",
+            "explanation": "Configuration defines environment variables, external libraries, and runtime parameters separating code from deployment environments.",
+            "rubric": {
+                "key_concepts": ["environment variables", "configuration", "dependencies", "runtime"],
+                "minimum_points": 2,
+            },
+        })
+
+    # --- K. TESTING STRATEGY (SPRINT 7) ---
+    for comp in assessable_components:
+        test_sub = next((sc for sc in comp.get("subcomponents", []) if "test" in sc["id"]), None)
+        if test_sub and test_sub["files"]:
+            tf = test_sub["files"][0]
+            bank.append({
+                "id": f"q_testing_{comp['id']}",
+                "scope": comp["id"],
+                "category": "testing_strategy",
+                "difficulty": "intermediate",
+                "question_type": "short_answer",
+                "question": f"Review test suite file '{tf}'. What testing strategies (e.g. unit testing, mocked dependencies, integration verification) are employed to validate {comp['name']}?",
+                "options": None,
+                "correct_option": None,
+                "relevant_files": [tf],
+                "evidence": f"Automated test file '{tf}' verifies {comp['name']}.",
+                "evidence_confidence": "high",
+                "explanation": f"Automated tests in {tf} establish regression safety for {comp['name']}.",
+                "rubric": {
+                    "key_concepts": ["automated tests", "fixtures", "assertions", "regression protection"],
+                    "minimum_points": 2,
+                },
+            })
+
+    # --- L. PULL REQUEST & REFACTORING IMPACT (SPRINT 7) ---
+    if len(assessable_components) >= 2:
+        c1, c2 = assessable_components[0], assessable_components[1]
+        bank.append({
+            "id": f"q_pr_impact_{c1['id']}_{c2['id']}",
+            "scope": c1["id"],
+            "category": "pr_impact",
+            "difficulty": "advanced",
+            "question_type": "scenario",
+            "question": f"If a pull request refactors the public interfaces or data models of '{c1['name']}', what downstream regression risks exist for '{c2['name']}', and what test verification is necessary before merging?",
+            "options": None,
+            "correct_option": None,
+            "relevant_files": c1["sample_files"][:1] + c2["sample_files"][:1],
+            "evidence": f"Component boundaries: {c1['name']} and {c2['name']}.",
+            "evidence_confidence": "high",
+            "explanation": "Contract changes require upstream schema backward-compatibility checks and end-to-end integration tests.",
+            "rubric": {
+                "key_concepts": ["breaking change", "downstream impact", "integration testing", "backward compatibility"],
+                "minimum_points": 2,
+            },
+        })
+
+    # Enrich all questions with version, source_reference, and stable hash IDs
+    for item in bank:
+        item["question_version"] = "3.0"
+        rel_files = item.get("relevant_files") or []
+        first_file = rel_files[0] if rel_files else None
+        item["source_reference"] = {
+            "file_path": first_file,
+            "symbol": (item.get("rubric") or {}).get("key_concepts", [None])[0] if item.get("rubric") else None,
+            "evidence_type": "architecture_component" if "arch" in item["id"] else ("ast_symbol" if "code" in item["id"] else "dependency_edge"),
+        }
+        if hackathon_mode:
+            item["disclaimer"] = "Hackathon readiness is a practice-oriented assessment of architecture comprehension, not an objective prediction of competition results."
+
     return bank
 
 
@@ -817,10 +951,39 @@ def evaluate_turn(
         feedback = {
             "score": 0,
             "verdict": "Unanswered",
+            "status": "unanswered",
+            "is_reliably_graded": True,
+            "evaluation_method": "deterministic_rule",
             "strengths": [],
             "gaps": ["No answer provided for evaluation."],
             "ideal_points": turn.rubric.get("key_concepts", []) if turn.rubric else [],
             "explanation": turn.explanation or "Please provide an explanation referencing concrete implementation files.",
+        }
+        turn.earned_score = 0
+        turn.evaluation = feedback
+        return feedback
+
+    # Security check: Detect attempted prompt injection or grading override
+    cleaned_lower = cleaned_ans.lower()
+    injection_patterns = [
+        r"\bignore\s+(previous|all)\s+instructions\b",
+        r"\bdisregard\s+(previous|all)\b",
+        r"\bgive\s+(full|100)\s+marks\b",
+        r"\bgrader\s+prompt\b",
+        r"\bsystem\s+prompt\b",
+        r"\breveal\s+(the\s+)?rubric\b",
+        r"\bscore:\s*100\b",
+    ]
+    if any(re.search(pat, cleaned_lower) for pat in injection_patterns):
+        feedback = {
+            "score": 0,
+            "verdict": "Prompt Injection Flagged",
+            "status": "prompt_injection_flagged",
+            "is_reliably_graded": True,
+            "evaluation_method": "security_filter",
+            "strengths": [],
+            "gaps": ["Submission flagged by security filter: detected prompt override / instruction manipulation."],
+            "explanation": "Answer submissions must explain actual codebase concepts without including evaluator instructions.",
         }
         turn.earned_score = 0
         turn.evaluation = feedback

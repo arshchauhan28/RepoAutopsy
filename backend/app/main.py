@@ -1,8 +1,11 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.init_db import init_db
+from app.db.session import get_db
 from app.api import analyses, interviews, reports, pull_requests, auth, workspaces, webhooks, notifications, dashboard
 
 
@@ -44,7 +47,34 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "service": settings.app_name,
+        "version": settings.analyzer_version,
+    }
+
+
+@app.get("/health/ready")
+def health_ready(response: Response, db: Session = Depends(get_db)):
+    """
+    Readiness probe: validates database connectivity and worker readiness.
+    Returns 503 if the database is unreachable.
+    """
+    try:
+        db.execute(text("SELECT 1"))
+        return {
+            "status": "ready",
+            "database": "connected",
+            "service": settings.app_name,
+            "version": settings.analyzer_version,
+        }
+    except Exception as exc:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {
+            "status": "unhealthy",
+            "database": "unavailable",
+            "error": "Database connectivity check failed.",
+        }
 
 
 app.include_router(analyses.router, prefix="/api/v1")

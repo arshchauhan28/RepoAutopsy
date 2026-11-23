@@ -121,10 +121,13 @@ def answer_current(
 ) -> InterviewTurn:
     """
     Evaluates and records an answer for the current or specified question turn.
+    Enforces valid state machine transitions (created/active/in_progress -> answered).
     """
     turns = sorted(session.turns, key=lambda t: t.question_index)
-    if session.status != "active":
+    if session.status in ("completed", "submitted"):
         raise ValueError("This assessment is already complete.")
+    if session.status not in ("active", "in_progress"):
+        raise ValueError(f"Cannot answer question: Assessment is in '{session.status}' state.")
 
     if question_index is not None:
         if question_index < 0 or question_index >= len(turns):
@@ -193,9 +196,13 @@ def submit_batch_answers(
     """
     Atomically evaluates all questions and completes the assessment within a single transaction.
     Protects against partial submission failures, race conditions, and network dropouts.
+    Idempotently returns already-completed assessments without double grading.
     """
-    if session.status != "active":
-        raise ValueError("This assessment is already complete.")
+    if session.status in ("completed", "submitted"):
+        logger.info("Assessment %s is already completed; returning idempotent result.", session.id)
+        return session
+    if session.status not in ("active", "in_progress", "grading"):
+        raise ValueError(f"Cannot submit answers: Assessment is in '{session.status}' state.")
 
     turns_map = {t.question_index: t for t in session.turns}
     analysis = session.analysis

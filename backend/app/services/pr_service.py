@@ -212,7 +212,7 @@ def compute_change_impacts(
                     "confidence": "medium",
                     "relevant_changed_file": f"Depends on {tgt_comp['name']}",
                     "dependency_evidence": f"Architectural link: {src_comp['name']} -> {tgt_comp['name']} ({edge.get('label', 'calls')}).",
-                    "explanation": f"Potentially affected because {src_comp['name']} dispatches requests or imports services from the modified {tgt_comp['name']} subsystem.",
+                    "explanation": f"Potentially affected because {src_comp['name']} dispatches requests or imports services from the modified {tgt_comp['name']} subsystem. Note: Architectural link indicates possible downstream effect; does not guarantee runtime failure.",
                 })
 
     return impacts
@@ -336,24 +336,25 @@ def compute_diagnostics_delta(
                 "status": "new",
             })
 
-        # Check for resolved base findings in modified files
+        # Check for resolved base findings in touched files
         for fp, bf in list(base_fingerprints.items()):
             bf_path = (getattr(bf, "file_path", "") or getattr(bf, "file", "") or "").replace("\\", "/").lower()
             if bf_path and (norm_fn.endswith(bf_path) or bf_path.endswith(norm_fn)):
-                # If file was modified and the issue wasn't reintroduced
                 bf_title = getattr(bf, "title", "Issue")
+                # If the file was touched in PR and the finding was not reintroduced as a new finding
                 if not any(nf["fingerprint"] == fp for nf in new_findings):
-                    resolved_findings.append({
-                        "fingerprint": fp,
-                        "title": bf_title,
-                        "category": getattr(bf, "category", "general"),
-                        "severity": getattr(bf, "severity", "medium"),
-                        "file_path": getattr(bf, "file_path", fn),
-                        "description": getattr(bf, "description", "Prior codebase diagnostic resolved in this PR."),
-                        "status": "resolved",
-                    })
+                    if not any(rf["fingerprint"] == fp for rf in resolved_findings):
+                        resolved_findings.append({
+                            "fingerprint": fp,
+                            "title": bf_title,
+                            "category": getattr(bf, "category", "general"),
+                            "severity": getattr(bf, "severity", "medium"),
+                            "file_path": getattr(bf, "file_path", fn),
+                            "description": getattr(bf, "description", "Prior codebase diagnostic resolved in this PR."),
+                            "status": "resolved",
+                        })
 
-    # Collect unchanged findings from files that were NOT touched
+    # Collect unchanged findings strictly from files that were NOT touched in this PR
     touched_paths = set()
     for cf in changed_files:
         touched_paths.add(cf["filename"].replace("\\", "/").lower())

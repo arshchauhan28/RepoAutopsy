@@ -148,10 +148,26 @@ export function AssessmentResults({
               <span className="font-mono text-xl text-[#66625b]">/100</span>
             </div>
             <span className="mt-1 font-mono text-[10px] text-[#8a867f]">
-              {session.turns.length} Questions Evaluated
+              {feedback.graded_questions_count !== undefined
+                ? `${feedback.graded_questions_count} Graded (${feedback.ungraded_questions_count || 0} Ungraded)`
+                : `${session.turns.length} Questions Evaluated`}
             </span>
           </div>
         </div>
+
+        {/* HACKATHON DISCLAIMER */}
+        {Boolean(session.hackathon_mode) && (
+          <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-200/90 leading-relaxed">
+            <span className="font-semibold text-amber-300">Hackathon Readiness Note:</span> This is a practice-oriented evaluation of architecture comprehension and demo resilience. It does not predict competition results.
+          </div>
+        )}
+
+        {/* PARTIALLY GRADED NOTICE */}
+        {feedback.has_ungraded_responses && (
+          <div className="mt-3 rounded-lg border border-sky-500/20 bg-sky-500/10 px-4 py-2 text-xs text-sky-200/90">
+            <span className="font-semibold text-sky-300">Coverage Notice:</span> Score denominator reflects {feedback.graded_questions_count} reliably graded questions. {feedback.ungraded_questions_count} free-text response(s) are marked as ungraded/provisional.
+          </div>
+        )}
 
         {/* FEEDBACK SUMMARY */}
         {feedback.summary && (
@@ -409,14 +425,17 @@ export function AssessmentResults({
             const isExpanded = expandedTurns[turn.id] ?? true
             const earned = turn.earned_score ?? (turn.evaluation?.score !== undefined ? Math.round((turn.evaluation.score / 100) * (turn.max_score || 5)) : 0)
             const max = turn.max_score || 5
-            const isPerfect = earned >= max
-            const isPartial = earned > 0 && earned < max
+            const isUngraded = turn.evaluation?.status === 'ungraded' || turn.evaluation?.is_reliably_graded === false
+            const isPerfect = !isUngraded && earned >= max
+            const isPartial = !isUngraded && earned > 0 && earned < max
 
             return (
               <div
                 key={turn.id}
                 className={`rounded-xl border transition-all ${
-                  isPerfect
+                  isUngraded
+                    ? 'border-sky-500/20 bg-sky-500/[.015]'
+                    : isPerfect
                     ? 'border-emerald-500/20 bg-emerald-500/[.015]'
                     : isPartial
                     ? 'border-yellow-500/20 bg-yellow-500/[.015]'
@@ -443,6 +462,11 @@ export function AssessmentResults({
                         <span className="font-mono text-[9px] uppercase tracking-wider text-[#77736c]">
                           {turn.question_type.replace(/_/g, ' ')}
                         </span>
+                        {turn.source_reference?.file_path && (
+                          <span className="font-mono text-[9px] text-[#77736c] truncate max-w-[200px]">
+                            {turn.source_reference.file_path}
+                          </span>
+                        )}
                       </div>
                       <h4 className="text-sm font-medium text-white leading-snug">
                         {turn.question}
@@ -453,14 +477,18 @@ export function AssessmentResults({
                   <div className="flex items-center gap-3 shrink-0">
                     <div
                       className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-mono font-semibold ${
-                        isPerfect
+                        isUngraded
+                          ? 'border-sky-500/30 bg-sky-500/10 text-sky-300'
+                          : isPerfect
                           ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
                           : isPartial
                           ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'
                           : 'border-rose-500/30 bg-rose-500/10 text-rose-300'
                       }`}
                     >
-                      {isPerfect ? (
+                      {isUngraded ? (
+                        <HelpCircle size={13} />
+                      ) : isPerfect ? (
                         <CheckCircle2 size={13} />
                       ) : isPartial ? (
                         <AlertTriangle size={13} />
@@ -468,7 +496,7 @@ export function AssessmentResults({
                         <XCircle size={13} />
                       )}
                       <span>
-                        {earned} / {max} pts
+                        {isUngraded ? 'Provisional' : `${earned} / ${max} pts`}
                       </span>
                     </div>
 
