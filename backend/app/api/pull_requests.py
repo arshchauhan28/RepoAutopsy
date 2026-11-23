@@ -7,6 +7,8 @@ from app.core.rate_limit import check_rate_limit
 from app.db.session import get_db
 from app.models.analysis import Analysis
 from app.models.pull_request import PullRequestAnalysis
+from app.models.user import User
+from app.api.deps import get_optional_user, check_resource_access
 from app.schemas.pull_request import (
     AnalyzePRRequest,
     PullRequestAnalysisOut,
@@ -95,13 +97,15 @@ def analyze_pr_endpoint(
 def get_pr_analysis_endpoint(
     pr_analysis_id: str,
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ):
     """
-    Retrieves a completed Pull Request analysis by ID.
+    Retrieves a completed Pull Request analysis by ID with workspace authorization.
     """
     pr = db.get(PullRequestAnalysis, pr_analysis_id)
     if not pr:
         raise HTTPException(status_code=404, detail="Pull request analysis not found.")
+    check_resource_access(pr.workspace_id, user, db, min_role="viewer")
     return pr
 
 
@@ -111,9 +115,10 @@ def get_pr_by_number_endpoint(
     repo: str,
     pr_number: int,
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ):
     """
-    Retrieves the latest analysis for a specific PR in a repository.
+    Retrieves the latest analysis for a specific PR in a repository with authorization.
     """
     stmt = (
         select(PullRequestAnalysis)
@@ -128,6 +133,7 @@ def get_pr_by_number_endpoint(
     pr = db.execute(stmt).scalar_one_or_none()
     if not pr:
         raise HTTPException(status_code=404, detail=f"No analysis found for {owner}/{repo}#{pr_number}.")
+    check_resource_access(pr.workspace_id, user, db, min_role="viewer")
     return pr
 
 
@@ -135,6 +141,7 @@ def get_pr_by_number_endpoint(
 def get_pr_report_endpoint(
     pr_analysis_id: str,
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ):
     """
     Generates change-focused Case Report ready for Markdown download or UI display.
@@ -142,4 +149,5 @@ def get_pr_report_endpoint(
     pr = db.get(PullRequestAnalysis, pr_analysis_id)
     if not pr:
         raise HTTPException(status_code=404, detail="Pull request analysis not found.")
+    check_resource_access(pr.workspace_id, user, db, min_role="viewer")
     return generate_pr_case_report(pr)

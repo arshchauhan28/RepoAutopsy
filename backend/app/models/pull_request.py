@@ -10,6 +10,8 @@ class PullRequestAnalysis(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     analysis_id: Mapped[str | None] = mapped_column(ForeignKey("analyses.id", ondelete="SET NULL"), nullable=True, index=True)
+    workspace_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     repo_owner: Mapped[str] = mapped_column(String(100), index=True)
     repo_name: Mapped[str] = mapped_column(String(100), index=True)
     pr_number: Mapped[int] = mapped_column(Integer, index=True)

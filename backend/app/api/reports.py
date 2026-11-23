@@ -2,15 +2,22 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.analysis import Analysis
+from app.models.user import User
+from app.api.deps import get_optional_user, check_resource_access
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
 
 @router.get("/{analysis_id}")
-def get_report(analysis_id: str, db: Session = Depends(get_db)):
+def get_report(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
     analysis = db.get(Analysis, analysis_id)
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
+    check_resource_access(analysis.workspace_id, user, db, min_role="viewer")
     latest = sorted(analysis.interviews, key=lambda x: x.created_at, reverse=True)[0] if analysis.interviews else None
     ai_data = analysis.ai_insights or {}
     recommendations = ai_data.get("recommendations", ai_data.get("top_recommendations", []))

@@ -8,6 +8,9 @@ class AnalyzePRRequest(BaseModel):
     repository_id: str | None = Field(None, description="Optional existing repository analysis ID to link with")
 
 
+PullRequestAnalyzeRequest = AnalyzePRRequest
+
+
 class PRChangedFileOut(BaseModel):
     filename: str
     previous_filename: str | None = None
@@ -93,6 +96,7 @@ class PullRequestAnalysisOut(BaseModel):
     diagnostics_delta: dict[str, Any] | None = None
     test_recommendations: list[dict[str, Any]] = []
     limitations: list[str] = []
+    analysis_coverage: str = "Changed-File with Dependency Graph Analysis"
     created_at: datetime
     completed_at: datetime | None = None
 

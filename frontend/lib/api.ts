@@ -342,6 +342,7 @@ export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:800
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
+    credentials: 'include',
     ...options,
     headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
     cache: 'no-store',
@@ -708,4 +709,296 @@ export function getPullRequestReport(prAnalysisId: string) {
     change_impacts: any[]
     test_recommendations: any[]
   }>(`/api/v1/pull-requests/${prAnalysisId}/report`)
+}
+
+// =========================================================================
+// SPRINT 4: AUTH, WORKSPACES, DASHBOARD, AUTOMATION & NOTIFICATIONS
+// =========================================================================
+
+export type User = {
+  id: string
+  github_id: string
+  username: string
+  display_name?: string | null
+  avatar_url?: string | null
+  email?: string | null
+  is_active: boolean
+  created_at: string
+  last_login_at: string
+}
+
+export type AuthStatus = {
+  authenticated: boolean
+  user: User | null
+}
+
+export type Workspace = {
+  id: string
+  name: string
+  description?: string | null
+  workspace_type: 'personal' | 'team' | 'org'
+  owner_id: string
+  status: string
+  member_count: number
+  repository_count: number
+  current_user_role: 'owner' | 'admin' | 'member' | 'viewer'
+  created_at: string
+  updated_at: string
+}
+
+export type WorkspaceMember = {
+  id: string
+  workspace_id: string
+  user_id: string
+  username: string
+  display_name?: string | null
+  avatar_url?: string | null
+  role: 'owner' | 'admin' | 'member' | 'viewer'
+  joined_at: string
+}
+
+export type WorkspaceInvitation = {
+  id: string
+  workspace_id: string
+  role: string
+  invite_url: string
+  invite_token: string
+  target_email?: string | null
+  target_github_username?: string | null
+  expires_at: string
+  created_at: string
+}
+
+export type AutomationSettings = {
+  id: string
+  connected_repo_id: string
+  is_enabled: boolean
+  analyze_on_pr_opened: boolean
+  analyze_on_pr_synchronize: boolean
+  analyze_on_pr_reopened: boolean
+  max_files_limit: number
+  notify_on_priority: string
+  created_at: string
+  updated_at: string
+}
+
+export type ConnectedRepository = {
+  id: string
+  workspace_id: string
+  github_repo_id?: string | null
+  owner: string
+  repo_name: string
+  github_url: string
+  default_branch: string
+  is_private: boolean
+  connection_status: 'connected' | 'syncing' | 'access_required' | 'error'
+  last_synced_at?: string | null
+  created_at: string
+  automation_settings?: AutomationSettings | null
+}
+
+export type NotificationItem = {
+  id: string
+  title: string
+  message: string
+  notification_type: string
+  resource_url?: string | null
+  resource_id?: string | null
+  is_read: boolean
+  created_at: string
+}
+
+export type DashboardSummary = {
+  user: {
+    id: string
+    username: string
+    display_name?: string | null
+    avatar_url?: string | null
+    email?: string | null
+  }
+  metrics: {
+    connected_repositories_count: number
+    workspaces_count: number
+    analyses_count: number
+    pr_analyses_count: number
+    codevitals_sessions_count: number
+    unread_notifications_count: number
+  }
+  workspaces: {
+    id: string
+    name: string
+    description?: string | null
+    workspace_type: string
+    created_at: string
+  }[]
+  connected_repositories: {
+    id: string
+    workspace_id: string
+    owner: string
+    repo_name: string
+    github_url: string
+    default_branch: string
+    is_private: boolean
+    status: string
+    last_synced_at?: string | null
+  }[]
+  recent_analyses: {
+    id: string
+    owner: string
+    repo_name: string
+    status: string
+    created_at: string
+    metrics: Record<string, any>
+  }[]
+  recent_pr_analyses: {
+    id: string
+    repo_owner: string
+    repo_name: string
+    pr_number: number
+    pr_title: string
+    review_priority: string
+    changed_files_count: number
+    additions: number
+    deletions: number
+    created_at: string
+  }[]
+  recent_assessments: {
+    id: string
+    analysis_id: string
+    participant_name?: string | null
+    assessment_type: string
+    status: string
+    score?: number | null
+    created_at: string
+  }[]
+  usage: {
+    workspace_id?: string | null
+    total_repo_analyses: number
+    total_pr_analyses: number
+    total_codevitals_sessions: number
+    total_events: number
+    current_plan: string
+    allowances: Record<string, any>
+  }
+}
+
+// Auth API
+export function getAuthStatus() {
+  return request<AuthStatus>('/api/v1/auth/status')
+}
+
+export function getLoginUrl(redirectUrl?: string) {
+  const path = redirectUrl ? `/api/v1/auth/login-url?redirect_url=${encodeURIComponent(redirectUrl)}` : '/api/v1/auth/login-url'
+  return request<{ login_url: string; state: string }>(path)
+}
+
+export function submitOAuthCallback(code: string, state: string) {
+  return request<{ user: User; expires_at: string; session_token?: string }>('/api/v1/auth/callback', {
+    method: 'POST',
+    body: JSON.stringify({ code, state }),
+  })
+}
+
+export function logout() {
+  return request<{ message: string }>('/api/v1/auth/logout', { method: 'POST' })
+}
+
+// Workspaces API
+export function getWorkspaces() {
+  return request<Workspace[]>('/api/v1/workspaces')
+}
+
+export function createWorkspace(data: { name: string; description?: string; workspace_type?: string }) {
+  return request<Workspace>('/api/v1/workspaces', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function getWorkspace(id: string) {
+  return request<Workspace>(`/api/v1/workspaces/${id}`)
+}
+
+export function updateWorkspace(id: string, data: { name?: string; description?: string }) {
+  return request<Workspace>(`/api/v1/workspaces/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export function getWorkspaceMembers(id: string) {
+  return request<WorkspaceMember[]>(`/api/v1/workspaces/${id}/members`)
+}
+
+export function createWorkspaceInvitation(id: string, data: { role?: string; target_email?: string; target_github_username?: string; expires_in_days?: number }) {
+  return request<WorkspaceInvitation>(`/api/v1/workspaces/${id}/invitations`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function joinWorkspace(invite_token: string) {
+  return request<Workspace>('/api/v1/workspaces/join', {
+    method: 'POST',
+    body: JSON.stringify({ invite_token }),
+  })
+}
+
+export function changeMemberRole(workspaceId: string, userId: string, role: string) {
+  return request<WorkspaceMember>(`/api/v1/workspaces/${workspaceId}/members/${userId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  })
+}
+
+export function removeWorkspaceMember(workspaceId: string, userId: string) {
+  return request<{ message: string }>(`/api/v1/workspaces/${workspaceId}/members/${userId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function getWorkspaceRepositories(workspaceId: string) {
+  return request<ConnectedRepository[]>(`/api/v1/workspaces/${workspaceId}/repositories`)
+}
+
+export function connectWorkspaceRepository(workspaceId: string, data: { github_url: string; is_private?: boolean; default_branch?: string }) {
+  return request<ConnectedRepository>(`/api/v1/workspaces/${workspaceId}/repositories`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function disconnectWorkspaceRepository(workspaceId: string, repoId: string) {
+  return request<{ message: string }>(`/api/v1/workspaces/${workspaceId}/repositories/${repoId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function updateRepoAutomation(workspaceId: string, repoId: string, data: Partial<AutomationSettings>) {
+  return request<AutomationSettings>(`/api/v1/workspaces/${workspaceId}/repositories/${repoId}/automation`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+// Notifications API
+export function getNotifications(limit = 20, unreadOnly = false) {
+  return request<NotificationItem[]>(`/api/v1/notifications?limit=${limit}&unread_only=${unreadOnly}`)
+}
+
+export function getUnreadNotificationCount() {
+  return request<{ unread_count: number }>('/api/v1/notifications/unread-count')
+}
+
+export function markNotificationRead(id: string) {
+  return request<NotificationItem>(`/api/v1/notifications/${id}/read`, { method: 'PATCH' })
+}
+
+export function markAllNotificationsRead() {
+  return request<{ message: string }>('/api/v1/notifications/read-all', { method: 'POST' })
+}
+
+// Dashboard API
+export function getDashboardSummary() {
+  return request<DashboardSummary>('/api/v1/dashboard/summary')
 }

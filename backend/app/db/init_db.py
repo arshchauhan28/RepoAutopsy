@@ -47,6 +47,14 @@ def init_db():
             if "analyses" in table_names:
                 existing_analysis_cols = {c["name"] for c in inspector.get_columns("analyses")}
                 _safe_add_column(conn, "analyses", "analyzer_version", "VARCHAR(20)", existing_analysis_cols)
+                _safe_add_column(conn, "analyses", "workspace_id", "VARCHAR(36)", existing_analysis_cols)
+                _safe_add_column(conn, "analyses", "user_id", "VARCHAR(36)", existing_analysis_cols)
+
+            # PullRequestAnalysis migration
+            if "pull_request_analyses" in table_names:
+                existing_pr_cols = {c["name"] for c in inspector.get_columns("pull_request_analyses")}
+                _safe_add_column(conn, "pull_request_analyses", "workspace_id", "VARCHAR(36)", existing_pr_cols)
+                _safe_add_column(conn, "pull_request_analyses", "user_id", "VARCHAR(36)", existing_pr_cols)
 
             # CodeVitals InterviewSession migration
             if "interview_sessions" in table_names:

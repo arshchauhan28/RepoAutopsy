@@ -3,11 +3,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.init_db import init_db
-from app.api import analyses, interviews, reports, pull_requests
+from app.api import analyses, interviews, reports, pull_requests, auth, workspaces, webhooks, notifications, dashboard
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    prod_errors = settings.validate_production_settings()
+    if prod_errors and settings.environment.lower() == "production":
+        raise RuntimeError(f"Production configuration validation failed: {'; '.join(prod_errors)}")
     init_db()
     yield
 
@@ -48,3 +51,8 @@ app.include_router(analyses.router, prefix="/api/v1")
 app.include_router(interviews.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(pull_requests.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(workspaces.router, prefix="/api/v1")
+app.include_router(webhooks.router, prefix="/api/v1")
+app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(dashboard.router, prefix="/api/v1")

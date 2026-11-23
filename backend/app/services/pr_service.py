@@ -354,7 +354,12 @@ def compute_diagnostics_delta(
                     })
 
     # Collect unchanged findings from files that were NOT touched
-    touched_paths = {cf["filename"].replace("\\", "/").lower() for cf in changed_files}
+    touched_paths = set()
+    for cf in changed_files:
+        touched_paths.add(cf["filename"].replace("\\", "/").lower())
+        if cf.get("previous_filename"):
+            touched_paths.add(cf["previous_filename"].replace("\\", "/").lower())
+
     for fp, bf in base_fingerprints.items():
         bf_path = (getattr(bf, "file_path", "") or getattr(bf, "file", "") or "").replace("\\", "/").lower()
         if not any(bf_path.endswith(tp) or tp.endswith(bf_path) for tp in touched_paths):
@@ -540,7 +545,7 @@ def analyze_pull_request(
 
     # 6. Limitations
     limitations = [
-        "Analysis performed on GitHub diff patches and static repository snapshots.",
+        f"Analysis Scope: Changed files and patch diffs mapped against base repository AST dependency graph (Base commit: {base_sha[:8] if base_sha else 'base'} → Head commit: {head_sha[:8] if head_sha else 'head'}).",
         "Dependency impact denotes potential consumer risk based on import edges, not guaranteed runtime breakage.",
     ]
     if is_partial:
@@ -558,6 +563,7 @@ def analyze_pull_request(
         "key_impact_components": list({ci["affected_component_name"] for ci in change_impacts})[:4],
         "new_regressions_count": diag_delta.get("new_high_severity_count", 0),
         "resolved_findings_count": diag_delta.get("resolved_count", 0),
+        "analysis_coverage": "Changed-File with Dependency Graph Analysis",
         "executive_summary": f"Pull Request #{pr_number} proposed by {pr_author or 'contributor'} modifies {len(changed_files)} file(s) across {len({ci['affected_component_id'] for ci in change_impacts})} architectural subsystem(s). Review Priority is rated {priority.upper()} based on {len(priority_reasons)} detected factor(s).",
     }
 
@@ -610,7 +616,7 @@ def generate_pr_case_report(pr: PullRequestAnalysis) -> dict[str, Any]:
         f"# PULL REQUEST AUTOPSY REPORT: #{pr.pr_number} — {pr.pr_title}",
         f"**Repository:** `{pr.repo_owner}/{pr.repo_name}` | **Author:** `{pr.pr_author or 'Unknown'}`",
         f"**Branch:** `{pr.head_branch}` → `{pr.base_branch}` | **Commits:** `{pr.base_sha[:8]}` → `{pr.head_sha[:8]}`",
-        f"**Review Priority:** **{pr.review_priority.upper()}**",
+        f"**Review Priority:** **{pr.review_priority.upper()}** | **Coverage:** `Changed-File with Dependency Graph Analysis`",
         "",
         "## 1. Executive Summary",
         summary.get("executive_summary", "Change analysis completed."),

@@ -7,6 +7,8 @@ from app.schemas.analysis import AnalysisCreate, AnalysisOut
 from app.services.github_service import parse_github_url, GitHubError
 from app.services.analysis_service import analyze_repository
 from app.core.rate_limit import check_rate_limit
+from app.models.user import User
+from app.api.deps import get_optional_user, check_resource_access
 
 router = APIRouter(prefix="/analyses", tags=["analyses"])
 
@@ -40,27 +42,43 @@ def create_analysis(
 
 
 @router.get("/{analysis_id}", response_model=AnalysisOut)
-def get_analysis(analysis_id: str, db: Session = Depends(get_db)):
+def get_analysis(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
     stmt = select(Analysis).options(joinedload(Analysis.findings)).where(Analysis.id == analysis_id)
     analysis = db.execute(stmt).unique().scalar_one_or_none()
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
+    check_resource_access(analysis.workspace_id, user, db, min_role="viewer")
     return analysis
 
 
 @router.get("/{analysis_id}/files")
-def get_files(analysis_id: str, db: Session = Depends(get_db)):
+def get_files(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
     analysis = db.get(Analysis, analysis_id)
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
+    check_resource_access(analysis.workspace_id, user, db, min_role="viewer")
     return {"files": analysis.file_tree or []}
 
 
 @router.post("/{analysis_id}/rerun", response_model=AnalysisOut, status_code=202)
-def rerun_analysis(analysis_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def rerun_analysis(
+    analysis_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
     analysis = db.get(Analysis, analysis_id)
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
+    check_resource_access(analysis.workspace_id, user, db, min_role="member")
     analysis.status = "queued"
     analysis.error = None
     db.commit()

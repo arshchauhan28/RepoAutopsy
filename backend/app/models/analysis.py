@@ -10,6 +10,8 @@ class Analysis(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     github_url: Mapped[str] = mapped_column(String(500), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     owner: Mapped[str] = mapped_column(String(120))
     repo_name: Mapped[str] = mapped_column(String(200))
     default_branch: Mapped[str | None] = mapped_column(String(120), nullable=True)

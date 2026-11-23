@@ -5,6 +5,8 @@ from sqlalchemy import select, desc
 from app.db.session import get_db
 from app.models.analysis import Analysis
 from app.models.interview import InterviewSession, InterviewTurn, TeamSession, TeamMember
+from app.models.user import User
+from app.api.deps import get_optional_user, check_resource_access
 from app.schemas.interview import (
     StartInterviewRequest,
     StartAssessmentRequest,
@@ -74,6 +76,7 @@ def create_interview(
     payload: StartAssessmentRequest,
     request: Request,
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ):
     """
     Starts an individual assessment (Complete Codebase or Component Assessment).
@@ -84,6 +87,7 @@ def create_interview(
     analysis = db.get(Analysis, analysis_id)
     if not analysis or analysis.status != "completed":
         raise HTTPException(status_code=409, detail="Analysis must be completed before starting an assessment.")
+    check_resource_access(analysis.workspace_id, user, db, min_role="member")
 
     return start_interview(
         db=db,
@@ -102,12 +106,21 @@ def create_interview(
 
 
 @router.get("/analysis/{analysis_id}/history")
-def get_assessment_history(analysis_id: str, request: Request, db: Session = Depends(get_db)):
+def get_assessment_history(
+    analysis_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
     """
     Returns previous assessment sessions for this repository.
     Never exposes session_tokens or individual rubrics.
     """
     check_rate_limit(request, "get_history", max_requests=60, window_seconds=60)
+    analysis = db.get(Analysis, analysis_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    check_resource_access(analysis.workspace_id, user, db, min_role="viewer")
     stmt = (
         select(InterviewSession)
         .where(InterviewSession.analysis_id == analysis_id)

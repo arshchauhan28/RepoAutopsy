@@ -109,12 +109,26 @@ Next.js frontend runs at `http://localhost:3000`.
 | `DATABASE_URL` | SQLAlchemy connection string | `sqlite:///./repolens.db` |
 | `FRONTEND_URL` | Allowed frontend origin for CORS | `http://localhost:3000` |
 | `GITHUB_TOKEN` | Optional GitHub personal access token for higher API limits | `None` |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID for user sign-in | `None` |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret | `None` |
+| `GITHUB_APP_ID` | Optional GitHub App ID for repository installation access | `None` |
+| `GITHUB_WEBHOOK_SECRET` | Secret key for verifying GitHub webhook signatures (HMAC SHA-256) | `None` |
+| `SESSION_SECRET` | Secret string for session HMAC tokens | `insecure-dev-session-secret...` |
+| `SESSION_EXPIRE_DAYS` | User session lifetime in days | `14` |
 | `AI_API_KEY` | Optional OpenAI or compatible API key | `None` |
 | `AI_BASE_URL` | Optional custom base URL for OpenAI-compatible providers | `None` |
 | `AI_MODEL` | LLM model identifier | `openai/gpt-oss-20b` |
 | `MAX_REPO_SIZE_MB` | Maximum allowed repository archive size | `40` |
 | `MAX_FILES` | Maximum repository files processed | `2500` |
 | `ENVIRONMENT` | Runtime environment (`development`, `testing`, `production`) | `development` |
+
+### Background Worker Configuration
+
+Run the dedicated background job worker to process automated PR Autopsies asynchronously:
+```bash
+cd backend
+python worker.py
+```
 
 ### Frontend (`frontend/.env.local`)
 
