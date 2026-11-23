@@ -198,7 +198,7 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
         group_key = f.get("root_cause_group") or f.get("category") or "general"
         grouped_findings[group_key].append(f)
 
-    # 1a. Secret exposures (Fix Now - Security)
+    # 1a. Secret exposures (Investigate First - Security)
     if "secret-exposure" in grouped_findings:
         items = grouped_findings["secret-exposure"]
         locs = [f"{f.get('file_path')}:{f.get('line')}" for f in items if f.get("file_path")]
@@ -207,6 +207,8 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
             "id": "rec-secrets",
             "title": "Revoke and Externalize Exposed Credentials",
             "priority": "Fix Now",
+            "priority_tier": "Investigate First",
+            "legacy_priority": "Fix Now",
             "category": "Security",
             "why_it_matters": "Credentials stored directly in source control can be accessed by unauthorized contributors, third-party loggers, or automated scanners.",
             "evidence": evidence_str,
@@ -216,7 +218,7 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
         })
         seen_rec_keys.add("secrets")
 
-    # 1b. Command injection / eval / exec (Fix Now - Security)
+    # 1b. Command injection / eval / exec (Investigate First - Security)
     if "command-injection" in grouped_findings or "dynamic-evaluation" in grouped_findings:
         items = grouped_findings.get("command-injection", []) + grouped_findings.get("dynamic-evaluation", [])
         locs = [f"{f.get('file_path')}:{f.get('line')}" for f in items if f.get("file_path")]
@@ -224,6 +226,8 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
             "id": "rec-injection",
             "title": "Harden Process Execution and Eliminate Dynamic Evaluation Sinks",
             "priority": "Fix Now",
+            "priority_tier": "Investigate First",
+            "legacy_priority": "Fix Now",
             "category": "Security",
             "why_it_matters": "Using shell=True with dynamic arguments or executing code via eval()/exec() allows arbitrary OS command execution if inputs are user-controlled.",
             "evidence": f"Dynamic execution sinks detected at: {', '.join(locs[:3])}",
@@ -233,7 +237,7 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
         })
         seen_rec_keys.add("injection")
 
-    # 1c. Mutable default arguments (Fix Now - Correctness)
+    # 1c. Mutable default arguments (Investigate First - Correctness)
     if "mutable-default-arg" in grouped_findings:
         items = grouped_findings["mutable-default-arg"]
         locs = [f"{f.get('file_path')}:{f.get('line')}" for f in items if f.get("file_path")]
@@ -241,6 +245,8 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
             "id": "rec-mutable-defaults",
             "title": "Replace Mutable Default Arguments with None Sentinel Pattern",
             "priority": "Fix Now",
+            "priority_tier": "Investigate First",
+            "legacy_priority": "Fix Now",
             "category": "Correctness",
             "why_it_matters": "Python default arguments are evaluated once at definition time. In-place mutations persist across all subsequent function calls, creating subtle state leaks between requests.",
             "evidence": f"Mutable defaults detected in: {', '.join(locs[:3])}",
@@ -250,7 +256,7 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
         })
         seen_rec_keys.add("mutable-defaults")
 
-    # 1d. Missing timeouts in HTTP requests (Fix Now - Reliability)
+    # 1d. Missing timeouts in HTTP requests (Recommended Next - Reliability)
     if "missing-timeout" in grouped_findings:
         items = grouped_findings["missing-timeout"]
         locs = [f"{f.get('file_path')}:{f.get('line')}" for f in items if f.get("file_path")]
@@ -258,6 +264,8 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
             "id": "rec-http-timeouts",
             "title": "Centralize Outbound HTTP Request Client with Explicit Timeouts",
             "priority": "Fix Now",
+            "priority_tier": "Recommended Next",
+            "legacy_priority": "Fix Now",
             "category": "Reliability",
             "why_it_matters": f"{len(items)} outbound network request call(s) lack explicit timeouts. Stalled remote servers can cause requests to hang indefinitely, depleting thread pools and causing cascading outages.",
             "evidence": f"Unbounded HTTP calls detected in: {', '.join(locs[:3])}",
@@ -267,14 +275,16 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
         })
         seen_rec_keys.add("http-timeouts")
 
-    # 1e. Silent exception swallowing (Fix Now - Reliability)
+    # 1e. Silent exception swallowing (Recommended Next - Reliability)
     if "silent-exception" in grouped_findings:
         items = grouped_findings["silent-exception"]
         locs = [f"{f.get('file_path')}:{f.get('line')}" for f in items if f.get("file_path")]
         recommendations.append({
             "id": "rec-silent-exceptions",
             "title": "Add Structured Logging to Exception Handlers",
-            "priority": "Fix Now",
+            "priority": "Recommended Next",
+            "priority_tier": "Recommended Next",
+            "legacy_priority": "Improve Later",
             "category": "Reliability",
             "why_it_matters": "Blank except blocks silently swallow unexpected runtime errors, making production failures invisible and debugging exceedingly difficult.",
             "evidence": f"Silent exception suppression detected in: {', '.join(locs[:3])}",
@@ -284,7 +294,7 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
         })
         seen_rec_keys.add("silent-exceptions")
 
-    # 2. Circular module dependencies (Improve Later - Architecture)
+    # 2. Circular module dependencies (Recommended Next - Architecture)
     if circular and "circular-deps" not in seen_rec_keys:
         cyc = circular[0]
         cycle_str = " -> ".join(PurePosixPath(p).name for p in cyc[:4])
@@ -292,6 +302,8 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
             "id": "rec-circular-deps",
             "title": "Decouple Circular Module Dependency Cycle",
             "priority": "Improve Later",
+            "priority_tier": "Recommended Next",
+            "legacy_priority": "Improve Later",
             "category": "Architecture",
             "why_it_matters": f"Found {len(circular)} circular import cycle(s) (e.g. {cycle_str}). Circular imports create tight architectural coupling and can trigger import-time recursion or uninitialized variable defects.",
             "evidence": f"Circular cycle between {cyc[0]} and {cyc[1] if len(cyc) > 1 else cyc[0]}.",
@@ -301,13 +313,15 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
         })
         seen_rec_keys.add("circular-deps")
 
-    # 3. Automated Test Suite (Improve Later - Quality / DevEx)
+    # 3. Automated Test Suite (Recommended Next - Quality / DevEx)
     has_tests = any("test" in c.get("name", "").lower() for c in components)
     if not has_tests and "test-suite" not in seen_rec_keys:
         recommendations.append({
             "id": "rec-test-suite",
             "title": "Establish Automated Unit and Integration Test Suite",
-            "priority": "Improve Later",
+            "priority": "Recommended Next",
+            "priority_tier": "Recommended Next",
+            "legacy_priority": "Improve Later",
             "category": "Developer Experience",
             "why_it_matters": "No automated test directory or test runner configuration was detected in the repository. Refactorings and dependency upgrades carry high risk of regression.",
             "evidence": "Repository contains no matching tests/ or spec/ directories.",
@@ -350,7 +364,9 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
                 recommendations.append({
                     "id": f"rec-modularize-{fname}",
                     "title": f"Modularize High-Complexity Module ({fname})",
-                    "priority": "Improve Later",
+                    "priority": "Recommended Next",
+                    "priority_tier": "Recommended Next",
+                    "legacy_priority": "Improve Later",
                     "category": "Maintainability",
                     "why_it_matters": f"{cpath} concentrates multiple responsibilities in a single module, complicating testing and concurrent changes.",
                     "evidence": evidence_desc,
@@ -361,12 +377,14 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
                 seen_rec_keys.add("monolith")
                 break
 
-    # 5. Missing README (Improve Later - Documentation)
+    # 5. Missing README (Optional Improvement - Documentation)
     if any(f.get("root_cause_group") == "missing-documentation" for f in findings):
         recommendations.append({
             "id": "rec-readme",
             "title": "Add Comprehensive Repository Documentation (README)",
-            "priority": "Improve Later",
+            "priority": "Optional Improvement",
+            "priority_tier": "Optional Improvement",
+            "legacy_priority": "Improve Later",
             "category": "Developer Experience",
             "why_it_matters": "No top-level README was found. Clear documentation is critical for onboarding and operational clarity.",
             "evidence": "Repository root does not contain a README.md file.",
@@ -380,7 +398,9 @@ def generate_deterministic_recommendations(context: dict) -> list[dict]:
         recommendations.append({
             "id": "rec-continuous-checks",
             "title": "Maintain Continuous Code Quality and Automated Audits",
-            "priority": "Improve Later",
+            "priority": "Optional Improvement",
+            "priority_tier": "Optional Improvement",
+            "legacy_priority": "Improve Later",
             "category": "Developer Experience",
             "why_it_matters": "Static analysis detected no high-priority defects or architectural anti-patterns.",
             "evidence": f"All {total_files} analyzed files passed current static checks cleanly.",

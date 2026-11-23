@@ -12,6 +12,16 @@ export type Finding = {
   evidence?: string | null
   suggested_fix?: string | null
   root_cause_group?: string | null
+  rule_id?: string
+  evidence_type?: string
+  confidence_classification?: string
+  source_reference?: {
+    file_path: string
+    start_line: number
+    end_line: number
+    symbol: string
+    evidence_type: string
+  } | null
 }
 
 export type FileHierarchyNode = {
@@ -165,6 +175,15 @@ export type ArchitectureData = {
   coverage?: {
     analyzed_files: number
     total_discovered_files: number
+    total_files?: number
+    eligible_source_files?: number
+    successfully_parsed?: number
+    partially_analyzed?: number
+    unsupported_files?: number
+    skipped_files?: number
+    failed_files?: number
+    languages_supported?: Record<string, string>
+    category_counts?: Record<string, number>
     is_partial: boolean
     limit_reason?: string | null
   }

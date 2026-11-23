@@ -6,6 +6,9 @@ export type GroupedOccurrence = {
   evidence?: string | null
   description?: string | null
   file_path?: string | null
+  rule_id?: string | null
+  evidence_type?: string | null
+  confidence_classification?: string | null
 }
 
 export type GroupedIssue = {
@@ -128,6 +131,9 @@ export function groupFindings(findings: Finding[]): {
       evidence: f.evidence,
       description: f.description,
       file_path: f.file_path,
+      rule_id: f.rule_id || null,
+      evidence_type: f.evidence_type || null,
+      confidence_classification: f.confidence_classification || null,
     })
     group.occurrenceCount = group.occurrences.length
   })

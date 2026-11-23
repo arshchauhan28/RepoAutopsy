@@ -474,11 +474,21 @@ export function FindingList({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
+                          {primaryOcc?.rule_id && (
+                            <span className="rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 font-mono text-[9px] uppercase font-bold text-amber-300">
+                              {primaryOcc.rule_id}
+                            </span>
+                          )}
                           <h3 className="text-sm font-semibold text-white">{group.title}</h3>
                           {getSeverityBadge(group.severity)}
                           <span className="rounded border border-emerald-500/20 bg-emerald-500/5 px-1.5 py-0.2 font-mono text-[9px] uppercase text-emerald-400">
-                            {group.confidence} Conf.
+                            {primaryOcc?.confidence_classification || group.confidence} Conf.
                           </span>
+                          {primaryOcc?.evidence_type && (
+                            <span className="rounded border border-blue-500/20 bg-blue-500/5 px-1.5 py-0.2 font-mono text-[9px] uppercase text-blue-300">
+                              {primaryOcc.evidence_type.replace('_', ' ')}
+                            </span>
+                          )}
                           <span className="rounded border border-white/[.08] bg-white/[.03] px-1.5 py-0.2 font-mono text-[9px] uppercase text-[#77736c]">
                             {group.category}
                           </span>

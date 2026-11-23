@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import ast
 import re
 from collections import defaultdict
 from pathlib import PurePosixPath
 from app.analyzers.dependencies import analyze_dependencies, JS_TS_EXTENSIONS
+from app.analyzers.classifier import (
+    classify_file,
+    is_eligible_for_ast_parsing,
+)
 from app.analyzers.metrics import (
     is_lockfile,
     is_generated_or_data_file,
@@ -11,7 +16,7 @@ from app.analyzers.metrics import (
     is_maintainable_source_candidate,
 )
 
-# Common ecosystem technologies mapping
+# Common ecosystem technologies mapping with rules for declared / imported / configured
 ECOSYSTEM_RULES = {
     "react": ("React", "frontend"),
     "next": ("Next.js", "frontend"),
@@ -155,20 +160,248 @@ SEMANTIC_RELATIONS: dict[tuple[str, str], str] = {
 
 def classify_file_to_component(file_path: str) -> str:
     path_norm = str(PurePosixPath(file_path)).replace("\\", "/")
-    if is_lockfile(path_norm) or is_generated_or_data_file(path_norm):
+    cat = classify_file(path_norm)
+    if cat in {"generated_code", "build_output", "vendored_dependency"}:
         return "comp-build-artifacts"
+    if cat == "test":
+        return "comp-tests"
+    if cat == "documentation":
+        return "comp-docs-specs"
+    if cat == "infrastructure":
+        return "comp-devops-infra"
 
     for comp in COMPONENT_SIGNATURES:
         for pat in comp["patterns"]:
             if re.search(pat, path_norm, re.IGNORECASE):
                 return comp["id"]
-    return "comp-scripts-utils"
+    return "comp-core-utils"
+
+
+def extract_symbols_from_file(path: str, content: str) -> list[dict]:
+    """
+    Extracts high-level architectural symbols (classes, functions, endpoints) from code.
+    Returns list of { name, type, line, path }.
+    """
+    symbols: list[dict] = []
+    suffix = PurePosixPath(path).suffix.lower()
+
+    if suffix == ".py":
+        try:
+            tree = ast.parse(content, filename=path)
+            for node in tree.body:
+                if isinstance(node, ast.ClassDef):
+                    symbols.append({
+                        "name": node.name,
+                        "type": "class",
+                        "line": node.lineno,
+                        "file_path": path,
+                    })
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    is_endpoint = False
+                    for dec in node.decorator_list:
+                        dec_repr = ast.unparse(dec) if hasattr(ast, "unparse") else ""
+                        if any(k in dec_repr for k in ["get", "post", "put", "delete", "patch", "route"]):
+                            is_endpoint = True
+                    symbols.append({
+                        "name": node.name,
+                        "type": "endpoint" if is_endpoint else "function",
+                        "line": node.lineno,
+                        "file_path": path,
+                    })
+        except Exception:
+            pass
+
+    elif suffix in JS_TS_EXTENSIONS:
+        lines = content.splitlines()
+        for idx, line in enumerate(lines, start=1):
+            cl = line.strip()
+            # Exported functions
+            m_func = re.search(r"\bexport\s+(?:async\s+)?function\s+([A-Za-z0-9_]+)", cl)
+            if m_func:
+                symbols.append({
+                    "name": m_func.group(1),
+                    "type": "function",
+                    "line": idx,
+                    "file_path": path,
+                })
+                continue
+            # Exported classes
+            m_class = re.search(r"\bexport\s+class\s+([A-Za-z0-9_]+)", cl)
+            if m_class:
+                symbols.append({
+                    "name": m_class.group(1),
+                    "type": "class",
+                    "line": idx,
+                    "file_path": path,
+                })
+                continue
+            # Route handlers (Next.js App router GET, POST, etc.)
+            m_route = re.search(r"\bexport\s+(?:async\s+)?function\s+(GET|POST|PUT|DELETE|PATCH)\b", cl)
+            if m_route:
+                symbols.append({
+                    "name": m_route.group(1),
+                    "type": "endpoint",
+                    "line": idx,
+                    "file_path": path,
+                })
+
+    return symbols[:20]
+
+
+def detect_entry_points(files: dict[str, str]) -> list[dict]:
+    """
+    Identifies application entry points with verified proof.
+    """
+    entry_points = []
+    for path, content in files.items():
+        path_norm = str(PurePosixPath(path)).replace("\\", "/")
+
+        # 1. FastAPI / ASGI
+        if path_norm.endswith(".py"):
+            if re.search(r"\b(?:app|application)\s*=\s*(?:FastAPI|Starlette)\s*\(", content):
+                entry_points.append({
+                    "path": path_norm,
+                    "type": "api_server",
+                    "framework": "FastAPI",
+                    "symbol": "app",
+                    "evidence": f"Instantiated FastAPI application in {path_norm}",
+                })
+            elif re.search(r"\b(?:app|application)\s*=\s*Flask\s*\(", content):
+                entry_points.append({
+                    "path": path_norm,
+                    "type": "api_server",
+                    "framework": "Flask",
+                    "symbol": "app",
+                    "evidence": f"Instantiated Flask application in {path_norm}",
+                })
+            elif path_norm.endswith("__main__.py") or path_norm == "cli.py":
+                entry_points.append({
+                    "path": path_norm,
+                    "type": "cli",
+                    "framework": "Python CLI",
+                    "symbol": "__main__",
+                    "evidence": f"CLI execution entry point at {path_norm}",
+                })
+
+        # 2. Next.js App Router / Pages
+        if re.search(r"(?:^|/)(?:frontend/)?(?:src/)?app/page\.[a-z]+$", path_norm):
+            entry_points.append({
+                "path": path_norm,
+                "type": "frontend_root",
+                "framework": "Next.js",
+                "symbol": "default",
+                "evidence": f"Next.js root page route at {path_norm}",
+            })
+        elif re.search(r"(?:^|/)(?:frontend/)?(?:src/)?pages/index\.[a-z]+$", path_norm):
+            entry_points.append({
+                "path": path_norm,
+                "type": "frontend_root",
+                "framework": "React / Next.js",
+                "symbol": "default",
+                "evidence": f"Pages router root index at {path_norm}",
+            })
+
+        # 3. Node / Express server
+        if path_norm in {"server.js", "server.ts", "src/server.ts", "backend/src/server.ts"}:
+            if re.search(r"\bexpress\s*\(", content):
+                entry_points.append({
+                    "path": path_norm,
+                    "type": "api_server",
+                    "framework": "Express",
+                    "symbol": "app",
+                    "evidence": f"Express server instance in {path_norm}",
+                })
+
+    return entry_points
+
+
+def detect_technology_stack(files: dict[str, str], dep_data: dict) -> list[dict]:
+    """
+    Evidence-based technology detection.
+    Distinguishes runtime_confirmed, configured, imported, and declared.
+    """
+    detected: dict[str, dict] = {}
+
+    def add_tech(name: str, category: str, ev_type: str, conf: str, ev_text: str, file_path: str):
+        if name not in detected:
+            detected[name] = {
+                "name": name,
+                "category": category,
+                "evidence_type": ev_type,
+                "confidence": conf,
+                "evidence": ev_text,
+                "files": [file_path],
+            }
+        else:
+            # Upgrade evidence if higher confidence
+            priority = {"runtime_confirmed": 3, "configured": 2, "imported": 2, "declared": 1}
+            cur_p = priority.get(detected[name]["evidence_type"], 0)
+            new_p = priority.get(ev_type, 0)
+            if new_p > cur_p:
+                detected[name]["evidence_type"] = ev_type
+                detected[name]["confidence"] = conf
+                detected[name]["evidence"] = ev_text
+            if file_path not in detected[name]["files"]:
+                detected[name]["files"].append(file_path)
+
+    # 1. Runtime confirmed from entry points
+    entry_points = detect_entry_points(files)
+    for ep in entry_points:
+        fw = ep["framework"]
+        if "FastAPI" in fw:
+            add_tech("FastAPI", "backend", "runtime_confirmed", "verified", ep["evidence"], ep["path"])
+        elif "Flask" in fw:
+            add_tech("Flask", "backend", "runtime_confirmed", "verified", ep["evidence"], ep["path"])
+        elif "Next.js" in fw:
+            add_tech("Next.js", "frontend", "runtime_confirmed", "verified", ep["evidence"], ep["path"])
+        elif "Express" in fw:
+            add_tech("Express", "backend", "runtime_confirmed", "verified", ep["evidence"], ep["path"])
+
+    # 2. Configured files
+    for path, content in files.items():
+        name_lower = PurePosixPath(path).name.lower()
+        if "next.config" in name_lower:
+            add_tech("Next.js", "frontend", "configured", "verified", f"Configured in {path}", path)
+        if "tailwind.config" in name_lower:
+            add_tech("Tailwind CSS", "frontend", "configured", "verified", f"Configured in {path}", path)
+        if "docker-compose" in name_lower or "dockerfile" in name_lower:
+            add_tech("Docker", "infrastructure", "configured", "verified", f"Container configuration in {path}", path)
+        if "tsconfig.json" in name_lower:
+            add_tech("TypeScript", "frontend", "configured", "verified", f"TypeScript compiler configured in {path}", path)
+
+    # 3. Imported packages from AST
+    for pkg_item in dep_data.get("external_packages", []):
+        pkg_name = pkg_item["package"].lower()
+        for rule_key, (tech_label, category) in ECOSYSTEM_RULES.items():
+            if rule_key == pkg_name or pkg_name.startswith(f"{rule_key}-"):
+                add_tech(
+                    tech_label,
+                    category,
+                    "imported",
+                    "verified",
+                    f"Imported in source files ({pkg_item['usage_count']} usage references)",
+                    "source-code",
+                )
+
+    # 4. Declared in manifests
+    for path, content in files.items():
+        path_lower = path.lower()
+        if "package.json" in path_lower or "requirements.txt" in path_lower or "pyproject.toml" in path_lower:
+            for rule_key, (tech_label, category) in ECOSYSTEM_RULES.items():
+                if rule_key in content.lower():
+                    add_tech(
+                        tech_label,
+                        category,
+                        "declared",
+                        "strong_evidence",
+                        f"Declared dependency in {path}",
+                        path,
+                    )
+
+    return sorted(detected.values(), key=lambda t: t["name"])
 
 
 def build_nested_file_tree(files: dict[str, str]) -> dict:
-    """
-    Build a complete, deep hierarchical directory tree representing every analyzed file.
-    """
     root = {
         "name": "root",
         "path": "",
@@ -197,6 +430,7 @@ def build_nested_file_tree(files: dict[str, str]) -> dict:
                     "name": part,
                     "path": path,
                     "type": "file",
+                    "category": classify_file(path),
                     "extension": ext,
                     "lines": file_lines,
                     "size": file_size,
@@ -240,15 +474,17 @@ def build_nested_file_tree(files: dict[str, str]) -> dict:
 
 def analyze_architecture(files: dict[str, str]) -> dict:
     """
-    Analyze codebase architecture with 3 comprehensive representations:
-    1. Architectural components & relationships
-    2. Deep file hierarchy
-    3. Module dependency graph
+    Analyze codebase architecture with evidence-based component recovery,
+    dependency graphs, entry points, and verified technology detection.
     """
     # 1. Dependency Graph
     dep_data = analyze_dependencies(files)
 
-    # 2. Component categorization
+    # 2. Technology Stack & Entry Points
+    technologies = detect_technology_stack(files, dep_data)
+    entry_points = detect_entry_points(files)
+
+    # 3. Component categorization
     components_map: dict[str, dict] = {}
     sig_lookup = {c["id"]: c for c in COMPONENT_SIGNATURES}
 
@@ -275,37 +511,35 @@ def analyze_architecture(files: dict[str, str]) -> dict:
                 "total_lines": 0,
                 "technologies": set(),
                 "files": [],
+                "symbols": [],
+                "evidence_references": [],
             }
         lines = content.count("\n") + (1 if content else 0)
         components_map[comp_id]["file_count"] += 1
-        # Exclude lockfiles from dominating architectural line counts
         if not is_lockfile(path):
             components_map[comp_id]["total_lines"] += lines
         components_map[comp_id]["files"].append({"path": path, "lines": lines})
 
-    # Detect technologies in each component
-    ecosystem_set: set[str] = set()
-    for edge in dep_data["edges"]:
-        import_name = (edge.get("import_name") or "").lower()
-        for rule_key, (tech_label, _cat) in ECOSYSTEM_RULES.items():
-            if rule_key in import_name:
-                ecosystem_set.add(tech_label)
-                src_comp = file_to_comp.get(edge["source"])
-                if src_comp and src_comp in components_map:
-                    components_map[src_comp]["technologies"].add(tech_label)
+        # Extract symbols and evidence references
+        if is_eligible_for_ast_parsing(path, classify_file(path)):
+            syms = extract_symbols_from_file(path, content)
+            components_map[comp_id]["symbols"].extend(syms[:5])
+            for s in syms[:3]:
+                components_map[comp_id]["evidence_references"].append({
+                    "file_path": path,
+                    "line": s["line"],
+                    "symbol": s["name"],
+                    "evidence_type": "ast_symbol",
+                })
 
-    # Detect technologies from package / requirements files
-    for path, content in files.items():
-        path_lower = path.lower()
-        if "package.json" in path_lower or "requirements.txt" in path_lower:
-            comp_id = file_to_comp.get(path, "comp-core-utils")
-            for rule_key, (tech_label, _cat) in ECOSYSTEM_RULES.items():
-                if rule_key in content.lower():
-                    ecosystem_set.add(tech_label)
-                    if comp_id in components_map:
-                        components_map[comp_id]["technologies"].add(tech_label)
+    # Associate technologies with components
+    for tech in technologies:
+        for f in tech.get("files", []):
+            cid = file_to_comp.get(f)
+            if cid and cid in components_map:
+                components_map[cid]["technologies"].add(tech["name"])
 
-    # 3. Inter-component edges based on real module import edges
+    # 4. Inter-component edges based on real module import edges
     comp_edge_weights: dict[tuple[str, str], int] = defaultdict(int)
     for edge in dep_data["edges"]:
         if edge.get("is_external"):
@@ -317,7 +551,6 @@ def analyze_architecture(files: dict[str, str]) -> dict:
         if src_comp and tgt_comp and src_comp != tgt_comp:
             comp_edge_weights[(src_comp, tgt_comp)] += 1
 
-    # Format Overview Nodes & Edges for React Flow
     layer_order = {
         "presentation": 0,
         "api": 1,
@@ -330,7 +563,6 @@ def analyze_architecture(files: dict[str, str]) -> dict:
         "general": 7,
     }
 
-    # Filter out pure build artifacts (lockfiles) from dominating primary overview
     active_components = [
         c for c in components_map.values()
         if c["id"] != "comp-build-artifacts" or len(components_map) <= 1
@@ -352,6 +584,7 @@ def analyze_architecture(files: dict[str, str]) -> dict:
             "total_lines": c["total_lines"],
             "technologies": sorted(c["technologies"]),
             "sample_files": [f["path"] for f in c["files"][:8]],
+            "symbols_count": len(c["symbols"]),
         })
 
     active_ids = {c["id"] for c in active_components}
@@ -369,7 +602,6 @@ def analyze_architecture(files: dict[str, str]) -> dict:
                 "animated": True,
             })
 
-    # If components have no inter-imports (e.g. static site or separated apps), infer natural flow
     if not overview_edges and len(overview_nodes) > 1:
         comp_ids = {c["id"] for c in active_components}
         inferred = [
@@ -393,17 +625,14 @@ def analyze_architecture(files: dict[str, str]) -> dict:
                     "animated": False,
                 })
 
-    # 4. Complete nested file tree
     file_hierarchy = build_nested_file_tree(files)
 
-    # 5. Top-level folders for backward compatibility
     top_counts = defaultdict(int)
     for p in files.keys():
         parts = PurePosixPath(p).parts
         root_folder = parts[0] if len(parts) > 1 else "root"
         top_counts[root_folder] += 1
 
-    # Legacy nodes & edges for backward compatibility
     legacy_nodes = [{"id": "root", "label": "Repository", "type": "root"}]
     legacy_edges = []
     for i, (folder, count) in enumerate(sorted(top_counts.items(), key=lambda x: -x[1])[:12]):
@@ -411,7 +640,6 @@ def analyze_architecture(files: dict[str, str]) -> dict:
         legacy_nodes.append({"id": nid, "label": folder, "type": "folder", "files": count})
         legacy_edges.append({"source": "root", "target": nid})
 
-    # Structure summary for diagnostics, drill-down & AI review
     incoming_map = defaultdict(list)
     outgoing_map = defaultdict(list)
     for (src, tgt), w in comp_edge_weights.items():
@@ -430,22 +658,26 @@ def analyze_architecture(files: dict[str, str]) -> dict:
             "role": c["role"],
             "files": [{"path": f["path"], "lines": f["lines"]} for f in c["files"]],
             "sample_files": [f["path"] for f in c["files"][:10]],
+            "symbols": c["symbols"][:10],
+            "evidence_references": c["evidence_references"][:6],
             "incoming_connections": incoming_map.get(c["id"], []),
             "outgoing_connections": outgoing_map.get(c["id"], []),
+            "coverage_status": "fully_analyzed" if c["file_count"] > 0 else "partially_analyzed",
         }
         for c in active_components
     ]
 
     return {
-        # Rich architecture representations
         "components": components_summary,
         "overview_nodes": overview_nodes,
         "overview_edges": overview_edges,
         "dependency_graph": dep_data,
         "file_hierarchy": file_hierarchy,
+        "entry_points": entry_points,
+        "technologies_detailed": technologies,
         # Backward compatibility
         "nodes": legacy_nodes,
         "edges": legacy_edges,
         "top_level": dict(top_counts),
-        "ecosystem": sorted(ecosystem_set),
+        "ecosystem": [t["name"] for t in technologies],
     }

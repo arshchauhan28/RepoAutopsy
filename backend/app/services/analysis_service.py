@@ -11,6 +11,7 @@ FINDING_COLUMNS = {
     "category", "severity", "confidence", "title", "description",
     "file_path", "line", "recommendation", "why_it_matters",
     "evidence", "suggested_fix", "root_cause_group",
+    "rule_id", "evidence_type",
 }
 
 

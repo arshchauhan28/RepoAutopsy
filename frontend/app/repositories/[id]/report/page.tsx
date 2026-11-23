@@ -136,7 +136,7 @@ export default function ReportPage() {
               <div className="font-mono text-[9px] uppercase tracking-[.15em] text-[#77736c]">Files Analyzed</div>
               <div className="mt-2 text-2xl font-semibold text-white">{metrics.total_files || 0}</div>
               <div className="mt-0.5 text-[10px] text-[#77736c]">
-                {coverage?.is_partial ? 'Partial safe subset' : '100% full coverage'}
+                {coverage ? `${coverage.eligible_source_files ?? metrics.first_party_source_files ?? metrics.total_files} eligible / ${coverage.successfully_parsed ?? metrics.first_party_source_files ?? metrics.total_files} parsed` : 'Complete Scope'}
               </div>
             </div>
 
@@ -396,7 +396,7 @@ export default function ReportPage() {
                       <h3 className="text-sm font-semibold text-white">{rec.title}</h3>
                     </div>
                     <span className="rounded border border-amber-400/40 bg-amber-400/10 px-2.5 py-0.5 font-mono text-[9px] uppercase font-bold text-amber-300">
-                      {rec.priority || 'Action'}
+                      {rec.priority_tier || rec.priority || 'Action'}
                     </span>
                   </div>
 
@@ -423,11 +423,34 @@ export default function ReportPage() {
           </section>
         )}
 
+        {/* 5. ANALYSIS LIMITATIONS & EVIDENCE SCOPE */}
+        <section className="mt-8 border border-white/[.08] rounded-xl bg-white/[.015] p-5 sm:p-6 reveal">
+          <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.16em] text-amber-400/90 font-bold">
+            <Info size={14} />
+            <span>05 / Evidence & Analysis Limitations</span>
+          </div>
+          <p className="mt-2 text-xs text-[#aaa69e]">
+            RepoAutopsy static analysis evaluates syntactic AST patterns and import graphs. Conclusions represent deterministic source evidence:
+          </p>
+          <ul className="mt-3 space-y-1.5 text-xs text-[#8a867f]">
+            {(briefing.analysis_limitations || [
+              'Static code analysis evaluates syntactic patterns; runtime behaviors and external environment variables cannot be fully established.',
+              'Dynamic import calls (e.g. importlib or runtime variables) are not resolved in the static dependency graph.',
+              'File classifications prioritize first-party application source code, excluding vendor dependencies and generated lockfiles.'
+            ]).map((lim: string, lIdx: number) => (
+              <li key={lIdx} className="flex gap-2">
+                <span className="text-amber-400/60">•</span>
+                <span>{lim}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {/* 6. CODEVITALS RESULTS */}
         <section className="card mt-8 p-5 sm:p-7 reveal">
           <div className="flex items-center gap-2 text-amber-400 font-mono text-[9px] uppercase tracking-[.16em]">
             <BrainCircuit size={14} />
-            <span>05 / CodeVitals Assessment</span>
+            <span>06 / CodeVitals Assessment</span>
           </div>
 
           {interview ? (

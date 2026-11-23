@@ -40,6 +40,10 @@ EXPECTED_COLUMNS: dict[str, list[tuple[str, str]]] = {
         ("plan", "VARCHAR(50) DEFAULT 'free'"),
         ("is_active", "BOOLEAN DEFAULT TRUE"),
     ],
+    "findings": [
+        ("rule_id", "VARCHAR(50)"),
+        ("evidence_type", "VARCHAR(50)"),
+    ],
 }
 
 

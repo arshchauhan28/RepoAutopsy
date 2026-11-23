@@ -259,7 +259,7 @@ export default function RepositoryPage() {
         </div>
 
         {/* STALE ANALYZER VERSION NOTICE */}
-        {analysis.status === 'completed' && (!analysis.analyzer_version || analysis.analyzer_version !== '2.1.0') && (
+        {analysis.status === 'completed' && (!analysis.analyzer_version || analysis.analyzer_version !== '2.2.0') && (
           <div className="card mt-6 border-amber-400/30 bg-amber-400/[.04] p-4 text-xs text-[#c8c4bc] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 reveal">
             <div className="flex items-center gap-2.5">
               <span className="font-mono text-amber-400 bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded text-[10px] font-bold">
@@ -558,6 +558,63 @@ export default function RepositoryPage() {
                     </Link>
                   </div>
                 </div>
+
+                {/* Evidence-Based Analysis Coverage Card */}
+                {analysis.architecture?.coverage && (
+                  <div className="card p-5 border-white/[.12] bg-[#0c0f13] space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[.08] pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[9px] uppercase tracking-wider text-amber-400 font-semibold">
+                          Analysis Coverage & Evidence
+                        </span>
+                        {analysis.commit_sha && (
+                          <span className="rounded bg-white/[.04] px-2 py-0.5 font-mono text-[10px] text-[#aaa69e] border border-white/[.08]">
+                            SHA: {analysis.commit_sha.slice(0, 7)}
+                          </span>
+                        )}
+                        <span className="rounded bg-amber-400/10 px-2 py-0.5 font-mono text-[10px] text-amber-300 border border-amber-400/30">
+                          v{analysis.analyzer_version || '2.2.0'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-[#77736c] font-mono">
+                        {analysis.architecture.coverage.is_partial ? 'Partial Coverage' : 'Verified Repository Scope'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
+                      <div className="rounded border border-white/[.06] bg-white/[.02] p-3 text-center">
+                        <div className="text-xs text-[#77736c]">Total Inventoried</div>
+                        <div className="mt-1 font-mono text-lg font-semibold text-white">
+                          {analysis.architecture.coverage.total_discovered_files || metrics.total_files || 0}
+                        </div>
+                      </div>
+                      <div className="rounded border border-white/[.06] bg-white/[.02] p-3 text-center">
+                        <div className="text-xs text-[#77736c]">Eligible Source</div>
+                        <div className="mt-1 font-mono text-lg font-semibold text-amber-400">
+                          {analysis.architecture.coverage.eligible_source_files ?? (metrics.first_party_source_files || metrics.total_files || 0)}
+                        </div>
+                      </div>
+                      <div className="rounded border border-emerald-500/20 bg-emerald-500/[.03] p-3 text-center">
+                        <div className="text-xs text-emerald-300/80">AST Parsed</div>
+                        <div className="mt-1 font-mono text-lg font-semibold text-emerald-400">
+                          {analysis.architecture.coverage.successfully_parsed ?? metrics.first_party_source_files ?? 0}
+                        </div>
+                      </div>
+                      <div className="rounded border border-blue-500/20 bg-blue-500/[.03] p-3 text-center">
+                        <div className="text-xs text-blue-300/80">Partially Analyzed</div>
+                        <div className="mt-1 font-mono text-lg font-semibold text-blue-400">
+                          {analysis.architecture.coverage.partially_analyzed ?? 0}
+                        </div>
+                      </div>
+                      <div className="rounded border border-white/[.06] bg-white/[.02] p-3 text-center">
+                        <div className="text-xs text-[#77736c]">Unsupported / Skipped</div>
+                        <div className="mt-1 font-mono text-lg font-semibold text-[#8b867d]">
+                          {(analysis.architecture.coverage.unsupported_files || 0) + (analysis.architecture.coverage.skipped_files || 0)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </section>
             )}
 

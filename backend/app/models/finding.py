@@ -21,5 +21,7 @@ class Finding(Base):
     evidence: Mapped[str | None] = mapped_column(Text, nullable=True)
     suggested_fix: Mapped[str | None] = mapped_column(Text, nullable=True)
     root_cause_group: Mapped[str | None] = mapped_column(String(100), default="general", nullable=True)
+    rule_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    evidence_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     analysis = relationship("Analysis", back_populates="findings")

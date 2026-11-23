@@ -20,6 +20,8 @@ class FindingOut(BaseModel):
     evidence: str | None = None
     suggested_fix: str | None = None
     root_cause_group: str | None = "general"
+    rule_id: str | None = None
+    evidence_type: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

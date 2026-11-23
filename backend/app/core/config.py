@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     max_files: int = 2500
     max_file_bytes: int = 750_000
     analysis_timeout_seconds: int = 90
-    analyzer_version: str = "2.1.0"
+    analyzer_version: str = "2.2.0"
     github_connect_timeout: float = 10.0
     github_read_timeout: float = 30.0
     github_archive_timeout: float = 60.0
