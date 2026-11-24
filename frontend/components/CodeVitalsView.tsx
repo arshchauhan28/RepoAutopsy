@@ -497,7 +497,7 @@ export function CodeVitalsView() {
               <div className="p-3 rounded bg-white/[.03] border border-white/[.08] text-[11px] text-[#aaa69e] space-y-1">
                 <div>Requested: <strong className="text-white">{insufficientPrompt.requestedCount} questions</strong></div>
                 <div>Verified Evidence: <strong className="text-amber-400">{insufficientPrompt.availableCount} questions</strong></div>
-                <div className="text-[10px] text-[#8e8a82] mt-1">RepoAutopsy guarantees factual grounding and never hallucinates generic programming trivia or fictional files to reach quotas.</div>
+                <div className="text-[10px] text-[#8e8a82] mt-1">RepoAutopsy generates questions backed by repository source evidence and transparently pauses if evidence is insufficient to reach the target count.</div>
               </div>
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button

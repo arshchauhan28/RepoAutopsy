@@ -160,7 +160,7 @@ export default function DiagnosticsFeaturePage() {
               </div>
               <h3 className="text-lg font-semibold text-white">Exact Line-Number Provenance</h3>
               <p className="text-sm text-[#9ca3af] leading-relaxed">
-                Every finding links directly to GitHub commit-pinned source lines. No vague AI hallucinations or speculative critique without code evidence.
+                Every finding links directly to GitHub commit-pinned source lines, providing evidence-backed diagnostics with transparent analysis coverage.
               </p>
             </div>
           </div>

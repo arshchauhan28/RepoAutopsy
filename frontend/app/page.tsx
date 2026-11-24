@@ -485,7 +485,7 @@ export default function Home() {
                     <span className="text-[#d1d5db]">Full Coverage Transparency</span>
                   </li>
                   <li>
-                    <span className="text-[#d1d5db]">Zero Hallucination Assessment</span>
+                    <span className="text-[#d1d5db]">Repository-Grounded Questions</span>
                   </li>
                 </ul>
               </div>

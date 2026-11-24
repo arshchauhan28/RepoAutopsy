@@ -185,9 +185,9 @@ def validate_question(
     symbol_table: set[str] | None = None,
 ) -> bool:
     """
-    Strong factual question validation:
+    Evidence-grounded question validation:
     Verifies that a generated question is structurally sound, evidence-supported,
-    free of self-leaking answers, and strictly bounded to verified repository files and symbols.
+    free of self-leaking or contradictory answers, and strictly bounded to verified repository files and symbols.
     """
     text = (q.get("question") or "").strip()
     if len(text) < 15:
@@ -207,10 +207,20 @@ def validate_question(
         # Ensure correct option is non-empty
         if not str(options[correct]).strip():
             return False
-        # Ensure question prompt does not contain the exact correct option text
+        # Ensure question prompt does not contain the exact correct option text (leak prevention)
         correct_txt = str(options[correct]).strip().lower()
         if len(correct_txt) > 4 and correct_txt in text.lower():
             return False
+
+        # Contradictory answer key / explanation validation
+        explanation = (q.get("explanation") or "").strip().lower()
+        if not explanation:
+            return False
+        # If explanation explicitly states another option index is correct, reject
+        for opt_idx in range(4):
+            if opt_idx != correct:
+                if f"option {opt_idx} is correct" in explanation or f"option {opt_idx} is the correct" in explanation:
+                    return False
 
     # Validate that claimed relevant files exist in repository
     files = q.get("relevant_files") or []
@@ -225,11 +235,15 @@ def validate_question(
 
     # Validate referenced symbols if present
     if symbol_table and files:
-        sym_match = re.search(r"['`]([a-zA-Z_][a-zA-Z0-9_]{2,})['`]", text)
-        if sym_match:
-            referenced_sym = sym_match.group(1).lower()
+        quoted_symbols = re.findall(r"['`]([a-zA-Z_][a-zA-Z0-9_]{2,})['`]", text)
+        for sym in quoted_symbols:
+            referenced_sym = sym.lower()
             # If symbol looks like a function/class name, verify against symbol table or files
-            if referenced_sym not in {"get", "post", "put", "delete", "true", "false", "none", "args", "kwargs"}:
+            if referenced_sym not in {
+                "get", "post", "put", "delete", "true", "false", "none", "args", "kwargs",
+                "self", "cls", "init", "main", "test", "data", "id", "name", "type", "value",
+                "error", "config", "session", "user", "file", "path", "json", "http", "api",
+            }:
                 has_sym = any(referenced_sym in s.lower() for s in symbol_table)
                 has_file_sym = any(referenced_sym in f.lower() for f in files)
                 if not has_sym and not has_file_sym and len(symbol_table) > 0:
@@ -927,17 +941,29 @@ def generate_assessment_questions(
     """
     Question Generation Engine 3.0:
     Orchestrates repository-grounded, deduplicated, and validated question generation.
-    Features a bounded refill loop to guarantee exact requested question counts whenever
-    sufficient evidence exists, without hallucinating fake files or generic filler.
+    Features a bounded refill loop to provide exact requested question counts whenever
+    sufficient evidence exists, backed by verified repository files and architectural evidence.
     """
     knowledge_model = build_repository_knowledge_model(analysis)
     assessable = knowledge_model["components"]
     valid_comp_ids = {c["id"] for c in assessable}
 
     all_files: set[str] = set()
+    symbol_table: set[str] = set()
     for c in assessable:
         all_files.update(c.get("all_files", []))
         all_files.update(c.get("sample_files", []))
+        for s in c.get("symbols", []):
+            symbol_table.add(s)
+        for sub in c.get("subcomponents", []):
+            if isinstance(sub, dict) and sub.get("name"):
+                symbol_table.add(sub["name"])
+
+    for node in knowledge_model.get("dependency_nodes", []):
+        if isinstance(node, dict) and node.get("id"):
+            symbol_table.add(node["id"].split("/")[-1].split(".")[0])
+        elif isinstance(node, str):
+            symbol_table.add(node.split("/")[-1].split(".")[0])
 
     # Normalize component selections
     if scope_type == "component":
@@ -1057,7 +1083,7 @@ Rules:
     )
 
     # 5. Quality Validation & Deduplication
-    valid_questions = [q for q in filtered_questions if validate_question(q, all_files)]
+    valid_questions = [q for q in filtered_questions if validate_question(q, all_files, symbol_table=symbol_table)]
     accepted = deduplicate_questions(valid_questions)
 
     # 6. Bounded Refill Loop if under target_count
@@ -1140,7 +1166,7 @@ Rules:
             for cand in refill_candidates:
                 if len(accepted) >= target_count:
                     break
-                if not validate_question(cand, all_files):
+                if not validate_question(cand, all_files, symbol_table=symbol_table):
                     continue
                 q_text = (cand.get("question") or "").lower()
                 q_hash = hashlib.sha256(re.sub(r"[^a-z0-9]", "", q_text).encode()).hexdigest()[:16]

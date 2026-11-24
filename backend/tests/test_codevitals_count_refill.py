@@ -328,9 +328,9 @@ def test_truthful_evidence_exhaustion_contract():
     assert session.question_count == err.available_count
 
 
-def test_zero_hallucination_guarantee():
+def test_source_grounded_evidence_and_file_validation():
     """
-    Verifies that all relevant_files referenced in questions actually exist in the repository knowledge model.
+    Verifies that all relevant_files referenced in questions are grounded in repository knowledge model files.
     """
     analysis = create_rich_mock_analysis()
     all_repo_files = {

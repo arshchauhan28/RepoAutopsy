@@ -166,15 +166,15 @@ export default function CodeVitalsFeaturePage() {
           </div>
         </section>
 
-        {/* EVIDENCE GROUNDING GUARANTEE */}
+        {/* REPOSITORY EVIDENCE GROUNDING */}
         <section className="rounded-xl border border-white/[.08] bg-white/[.02] p-6 sm:p-8 space-y-4">
           <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-amber-400 font-semibold">
             <AlertCircle size={14} />
-            <span>Zero-Hallucination Contract</span>
+            <span>Repository-Grounded Questions</span>
           </div>
-          <h3 className="text-lg font-semibold text-white">Strict Repository Evidence Grounding</h3>
+          <h3 className="text-lg font-semibold text-white">Questions Backed by Source Code Evidence</h3>
           <p className="text-sm text-[#9ca3af] leading-relaxed">
-            CodeVitals will never invent hypothetical classes or imaginary API endpoints. Every question is derived from real parsed syntax trees and verified repository symbols. If a selected component lacks sufficient evidence to formulate questions of high technical validity, CodeVitals transparently refrains from fabricating trivia and informs the user upfront.
+            CodeVitals generates questions using repository analysis and source evidence. Automated validation reduces unsupported questions, but generated content may still contain inaccuracies. If a selected component lacks sufficient evidence to formulate valid questions, CodeVitals transparently pauses and informs the user upfront rather than inventing generic filler.
           </p>
         </section>
 

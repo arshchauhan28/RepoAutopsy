@@ -165,6 +165,11 @@ export function CompleteAssessmentConfig({
         />
       </div>
 
+      {/* METHODOLOGY TRANSPARENCY NOTICE */}
+      <div className="rounded-lg border border-white/[.08] bg-white/[.02] p-3 text-[11px] text-[#8e8a82] leading-relaxed">
+        <span className="text-white font-medium">Evaluation Transparency:</span> CodeVitals generates questions using repository analysis and source evidence. Automated validation reduces unsupported questions, but generated content may still contain inaccuracies.
+      </div>
+
       {/* REVIEW SUMMARY & START ACTION */}
       <div className="border-t border-white/[.08] pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="font-mono text-[10px] text-[#8e8a82]">

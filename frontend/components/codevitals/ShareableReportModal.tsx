@@ -231,7 +231,7 @@ export function ShareableReportModal({ report, onClose }: ShareableReportModalPr
           <div className="border-t border-white/[.06] pt-3 text-[10px] font-mono text-[#77736c] flex items-center gap-2">
             <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
             <span>
-              Zero-Credentials Guaranteed: This document is sanitized of participant session tokens, organizer credentials, and unmasked test answers.
+              Sanitized Export: This document is sanitized of participant session tokens, organizer credentials, and unmasked test answers.
             </span>
           </div>
         </div>
