@@ -112,7 +112,10 @@ def extract_safe_archive(data: bytes) -> dict[str, str]:
     if total_uncompressed > settings.max_repo_size_mb * 1024 * 1024 * 3:
         raise GitHubError("Repository archive expands beyond the configured safety limit.")
     if len(members) > settings.max_files:
-        raise GitHubError(f"Repository contains more than {settings.max_files} files; analysis was stopped to protect the service.")
+        raise GitHubError(
+            f"Repository exceeds the analysis limit: found {len(members)} files, but RepoAutopsy currently processes up to {settings.max_files} files. "
+            "Analysis was stopped to protect backend service stability and memory."
+        )
 
     for member in members:
         path = PurePosixPath(member.filename)

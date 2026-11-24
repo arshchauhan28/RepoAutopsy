@@ -182,10 +182,16 @@ export type ArchitectureData = {
     unsupported_files?: number
     skipped_files?: number
     failed_files?: number
+    coverage_percentage?: number
+    is_full_coverage?: boolean
+    is_partial: boolean
+    is_intake_truncated?: boolean
+    limit_reason?: string | null
+    skipped_breakdown?: Record<string, number>
+    partially_analyzed_breakdown?: Record<string, number>
+    unsupported_breakdown?: Record<string, number>
     languages_supported?: Record<string, string>
     category_counts?: Record<string, number>
-    is_partial: boolean
-    limit_reason?: string | null
   }
   // Legacy fields
   nodes?: any[]

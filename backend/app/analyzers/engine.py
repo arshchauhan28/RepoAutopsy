@@ -29,12 +29,16 @@ def run_static_analysis(files: dict[str, str], is_partial: bool = False, limit_r
     architecture = analyze_architecture(files)
     findings = detect_findings(files)
 
-    # Compute explicit coverage statistics
+    # Compute explicit, non-overlapping coverage statistics
     eligible_count = 0
     successfully_parsed_count = 0
     partially_analyzed_count = 0
     unsupported_count = 0
     skipped_count = 0
+
+    skipped_breakdown: dict[str, int] = {}
+    partially_analyzed_breakdown: dict[str, int] = {}
+    unsupported_breakdown: dict[str, int] = {}
 
     for path in files.keys():
         cat = classify_file(path)
@@ -43,28 +47,46 @@ def run_static_analysis(files: dict[str, str], is_partial: bool = False, limit_r
 
         if cat in {"build_output", "vendored_dependency", "generated_code", "asset"}:
             skipped_count += 1
+            skipped_breakdown[cat] = skipped_breakdown.get(cat, 0) + 1
         elif is_eligible_for_ast_parsing(path, cat):
             eligible_count += 1
             successfully_parsed_count += 1
         elif tier == "partially_supported":
             partially_analyzed_count += 1
+            partially_analyzed_breakdown[cat] = partially_analyzed_breakdown.get(cat, 0) + 1
         else:
             unsupported_count += 1
+            unsupported_breakdown[lang] = unsupported_breakdown.get(lang, 0) + 1
+
+    total_f = len(files)
+    coverage_pct = round((successfully_parsed_count / total_f * 100), 1) if total_f > 0 else 100.0
+    is_full_coverage = (
+        not is_partial
+        and partially_analyzed_count == 0
+        and unsupported_count == 0
+        and skipped_count == 0
+    )
 
     coverage = {
-        "total_discovered_files": len(files),
-        "total_files": len(files),
-        "analyzed_files": len(files),
+        "total_discovered_files": total_f,
+        "total_files": total_f,
+        "analyzed_files": total_f,
         "eligible_source_files": eligible_count,
         "successfully_parsed": successfully_parsed_count,
         "partially_analyzed": partially_analyzed_count,
         "unsupported_files": unsupported_count,
         "skipped_files": skipped_count,
         "failed_files": 0,
+        "coverage_percentage": coverage_pct,
+        "is_full_coverage": is_full_coverage,
+        "is_partial": is_partial or (partially_analyzed_count > 0 or unsupported_count > 0),
+        "is_intake_truncated": is_partial,
+        "limit_reason": limit_reason,
+        "skipped_breakdown": skipped_breakdown,
+        "partially_analyzed_breakdown": partially_analyzed_breakdown,
+        "unsupported_breakdown": unsupported_breakdown,
         "languages_supported": metrics.get("language_tiers", {}),
         "category_counts": metrics.get("category_counts", {}),
-        "is_partial": is_partial,
-        "limit_reason": limit_reason,
     }
 
     # Attach coverage to architecture for UI and API consumers

@@ -19,12 +19,13 @@ import {
   Layers,
   Link as LinkIcon,
 } from 'lucide-react'
-import type { Finding, Recommendation } from '@/lib/api'
+import type { Finding, Recommendation, ArchitectureData } from '@/lib/api'
 import { groupFindings, type GroupedIssue, type DiagnosticCounts } from '@/lib/grouping'
 
 interface CodebaseDoctorProps {
   findings: Finding[]
   recommendations?: Recommendation[]
+  coverage?: ArchitectureData['coverage']
   owner?: string
   repo?: string
   defaultBranch?: string | null
@@ -36,6 +37,7 @@ interface CodebaseDoctorProps {
 export function FindingList({
   findings,
   recommendations = [],
+  coverage,
   owner,
   repo,
   defaultBranch = 'main',
@@ -51,6 +53,7 @@ export function FindingList({
   const [expandedIssueIds, setExpandedIssueIds] = useState<Record<string, boolean>>({})
   const [recFilter, setRecFilter] = useState<'all' | 'fix_now' | 'improve_later'>('all')
   const [highlightedIssueId, setHighlightedIssueId] = useState<string | null>(null)
+  const [showCoverageBreakdown, setShowCoverageBreakdown] = useState<boolean>(false)
 
   // Sync category filter when initialCategory prop changes
   useEffect(() => {
@@ -354,6 +357,72 @@ export function FindingList({
       {/* ------------------------------------------------------------------ */}
       {activeTab === 'issues' && (
         <div className="space-y-4">
+          {/* SCOPE & COVERAGE TRANSPARENCY BAR */}
+          {coverage && (
+            <div className="rounded-lg border border-white/[.08] bg-white/[.02] p-3 text-xs space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[10px] uppercase font-bold text-amber-400">Analysis Coverage:</span>
+                  <span className="font-mono text-white">
+                    {coverage.successfully_parsed ?? 0} / {coverage.total_files} files fully parsed
+                  </span>
+                  <span
+                    className={`px-2 py-0.2 rounded font-mono text-[9px] font-semibold uppercase ${
+                      coverage.is_full_coverage
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}
+                  >
+                    {coverage.is_full_coverage ? 'Full AST Scope' : 'Partial Language Scope'}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowCoverageBreakdown(!showCoverageBreakdown)}
+                  className="font-mono text-[11px] text-amber-300/90 hover:text-amber-200 hover:underline flex items-center gap-1"
+                >
+                  <span>{showCoverageBreakdown ? 'Hide Breakdown' : 'View Coverage Details →'}</span>
+                </button>
+              </div>
+
+              {/* EXPANDABLE COVERAGE BREAKDOWN */}
+              {showCoverageBreakdown && (
+                <div className="mt-2 rounded-lg border border-amber-400/20 bg-amber-400/[.03] p-3.5 text-xs space-y-3 reveal">
+                  <div className="flex items-center justify-between border-b border-white/[.06] pb-2">
+                    <span className="font-semibold text-white">Coverage Breakdown & Limitations</span>
+                    <span className="font-mono text-[10px] text-[#8e8a82]">v2.2.0 Analyzer</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="p-2.5 rounded bg-black/40 border border-white/[.06]">
+                      <div className="text-[#8e8a82] text-[10px] uppercase font-mono">AST Parsed</div>
+                      <div className="font-mono text-emerald-400 font-bold text-sm mt-0.5">{coverage.successfully_parsed || 0} files</div>
+                      <div className="text-[10px] text-[#6b7280] mt-0.5">Full syntax, functions & security rules</div>
+                    </div>
+                    <div className="p-2.5 rounded bg-black/40 border border-white/[.06]">
+                      <div className="text-[#8e8a82] text-[10px] uppercase font-mono">Partially Analyzed</div>
+                      <div className="font-mono text-amber-400 font-bold text-sm mt-0.5">{coverage.partially_analyzed || 0} files</div>
+                      <div className="text-[10px] text-[#6b7280] mt-0.5">Configuration, schemas, YAML, Markdown</div>
+                    </div>
+                    <div className="p-2.5 rounded bg-black/40 border border-white/[.06]">
+                      <div className="text-[#8e8a82] text-[10px] uppercase font-mono">Unsupported</div>
+                      <div className="font-mono text-[#8e8a82] font-bold text-sm mt-0.5">{coverage.unsupported_files || 0} files</div>
+                      <div className="text-[10px] text-[#6b7280] mt-0.5">Unrecognized languages or non-code files</div>
+                    </div>
+                    <div className="p-2.5 rounded bg-black/40 border border-white/[.06]">
+                      <div className="text-[#8e8a82] text-[10px] uppercase font-mono">Skipped</div>
+                      <div className="font-mono text-[#8e8a82] font-bold text-sm mt-0.5">{coverage.skipped_files || 0} files</div>
+                      <div className="text-[10px] text-[#6b7280] mt-0.5">Vendored, build outputs, generated bundles</div>
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-[#aaa69e] bg-white/[.02] p-2.5 rounded border border-white/[.05] leading-relaxed">
+                    <strong>Coverage Transparency:</strong> RepoAutopsy inspects code files with native AST analyzers (Python, JS, TS). Non-code files, markup, and unsupported languages undergo structural inventory only. Zero findings in analyzed code does not imply the absence of defects in unexamined files.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Sub-filters for Issues */}
           <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-lg border border-white/[.06] bg-white/[.015] p-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -431,21 +500,62 @@ export function FindingList({
 
           {/* Grouped Issues List */}
           {filteredIssues.length === 0 ? (
-            <div className="card flex flex-col items-center justify-center p-8 text-center reveal">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-emerald-400">
-                <ShieldCheck size={24} />
-              </div>
-              <h3 className="mt-3 text-sm font-semibold text-white">
-                No high-priority issues detected by the available checks.
-              </h3>
-              <p className="mt-1 max-w-md text-xs leading-5 text-[#77736c]">
-                The repository passed all current AST and heuristic checks with zero critical, high, or medium severity risks flagged.
-                (Note: static analysis evaluates detectable code patterns and does not guarantee the complete absence of all vulnerabilities).
-              </p>
+            <div className="card flex flex-col items-center justify-center p-8 text-center reveal space-y-3">
+              {findings.length === 0 ? (
+                <>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-amber-400/20 bg-amber-400/10 text-amber-400">
+                    <ShieldCheck size={24} />
+                  </div>
+                  <h3 className="text-sm font-semibold text-white">
+                    0 Findings Detected in Parsed Code
+                  </h3>
+                  {coverage && (coverage.partially_analyzed || 0) + (coverage.unsupported_files || 0) > 0 ? (
+                    <div className="max-w-lg rounded-lg border border-amber-400/30 bg-amber-400/[.06] p-3 text-xs text-[#dcd8d0] text-left space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                        <AlertTriangle size={14} className="shrink-0" />
+                        <span>Limited Analysis Coverage</span>
+                      </div>
+                      <p className="leading-relaxed">
+                        Zero issues were detected across the <strong>{coverage.successfully_parsed || 0} AST-parsed files</strong>. However, <strong>{coverage.partially_analyzed || 0} files</strong> were only partially examined (e.g. markup, configs) and <strong>{(coverage.unsupported_files || 0) + (coverage.skipped_files || 0)} files</strong> were non-source or skipped.
+                      </p>
+                      <p className="text-[11px] text-[#aaa69e]">
+                        Static analysis evaluates detectable code patterns and does not guarantee the complete absence of bugs or vulnerabilities across unanalyzed modules.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="max-w-md text-xs leading-5 text-[#77736c]">
+                      The repository passed all current AST security and code quality checks with zero issues detected.
+                      (Note: static analysis evaluates detectable code patterns and does not guarantee the complete absence of all vulnerabilities).
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[.1] bg-white/[.02] text-[#8e8a82]">
+                    <Search size={20} />
+                  </div>
+                  <h3 className="text-sm font-semibold text-white">
+                    No issues match the selected filter.
+                  </h3>
+                  <p className="text-xs text-[#77736c]">
+                    Try switching severity or category filters to inspect other findings.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSeverityFilter('all')
+                      setCategoryFilter('all')
+                      setShowLow(true)
+                    }}
+                    className="rounded border border-white/[.12] bg-white/[.04] px-3 py-1.5 text-xs text-white hover:border-amber-400/40 transition"
+                  >
+                    Reset All Filters ({findings.length} total findings)
+                  </button>
+                </>
+              )}
               {counts.distinct.low > 0 && !showLow && (
                 <button
                   onClick={() => setShowLow(true)}
-                  className="mt-4 rounded border border-white/[.1] px-3 py-1.5 font-mono text-xs text-[#aaa69e] hover:bg-white/[.04]"
+                  className="mt-2 rounded border border-white/[.1] px-3 py-1.5 font-mono text-xs text-[#aaa69e] hover:bg-white/[.04]"
                 >
                   Inspect {counts.distinct.low} low-priority technical debt markers
                 </button>

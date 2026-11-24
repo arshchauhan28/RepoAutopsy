@@ -14,6 +14,9 @@ import {
   BrainCircuit,
   FileText,
   GitPullRequest,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
 } from 'lucide-react'
 import { Nav } from '@/components/Nav'
 import { ArchitectureMap } from '@/components/ArchitectureMap'
@@ -42,6 +45,17 @@ function normalizeSectionHash(hash: string): SectionTab {
     return clean as SectionTab
   }
   return 'overview'
+}
+
+function isLargeRepoError(error?: string | null): boolean {
+  if (!error) return false
+  const lower = error.toLowerCase()
+  return (
+    lower.includes('2500') ||
+    lower.includes('exceeds the analysis limit') ||
+    lower.includes('contains more than') ||
+    lower.includes('analysis was stopped to protect')
+  )
 }
 
 export default function RepositoryPage() {
@@ -314,9 +328,74 @@ export default function RepositoryPage() {
 
         {/* FAILED STATE */}
         {analysis.status === 'failed' && (
-          <div className="mt-6 border border-rose-400/20 bg-rose-400/[.04] p-4 text-sm leading-6 text-rose-300 reveal">
-            {analysis.error || 'The analysis failed.'}
-          </div>
+          isLargeRepoError(analysis.error) ? (
+            <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/[.04] p-6 sm:p-8 space-y-5 reveal">
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 shrink-0">
+                  <ShieldAlert size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-amber-400 font-semibold">
+                      Resource Protection Safeguard
+                    </span>
+                    <span className="rounded bg-amber-400/10 px-2 py-0.5 font-mono text-[10px] text-amber-300 border border-amber-400/20">
+                      2,500 File Limit
+                    </span>
+                  </div>
+                  <h3 className="mt-1 text-lg font-semibold text-white">
+                    Repository Exceeds Analysis Limits
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-[#c8c4bc]">
+                    {analysis.error}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-white/[.08] bg-black/30 p-4 space-y-2 text-xs text-[#9ca3af] leading-relaxed">
+                <div className="font-medium text-white flex items-center gap-1.5">
+                  <Info size={14} className="text-amber-400" />
+                  Why does this happen?
+                </div>
+                <p>
+                  To protect cloud backend stability and avoid out-of-memory crashes on shared host instances, RepoAutopsy enforces a strict limit of <strong>2,500 archive files</strong> per repository snapshot. Very large codebases or repositories containing extensive multilingual documentation trees (such as FastAPI) exceed this limit during archive extraction.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <Link
+                  href="/analyze"
+                  className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-xs font-semibold text-black hover:bg-amber-300 transition"
+                >
+                  <ArrowRight size={14} />
+                  <span>Analyze Another Repository</span>
+                </Link>
+                <div className="text-xs text-[#77736c] px-1">or try verified examples:</div>
+                <Link
+                  href="/analyze"
+                  className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-2 text-xs text-[#c8c4bc] hover:border-amber-400/40 hover:text-white transition"
+                >
+                  encode/starlette (ASGI)
+                </Link>
+                <Link
+                  href="/analyze"
+                  className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-2 text-xs text-[#c8c4bc] hover:border-amber-400/40 hover:text-white transition"
+                >
+                  pallets/flask (WSGI)
+                </Link>
+                <Link
+                  href="/analyze"
+                  className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-2 text-xs text-[#c8c4bc] hover:border-amber-400/40 hover:text-white transition"
+                >
+                  expressjs/express (Node.js)
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6 border border-rose-400/20 bg-rose-400/[.04] p-4 text-sm leading-6 text-rose-300 reveal">
+              {analysis.error || 'The analysis failed.'}
+            </div>
+          )
         )}
 
         {/* COMPLETED DASHBOARD CONTENT */}
@@ -564,11 +643,11 @@ export default function RepositoryPage() {
 
                 {/* Evidence-Based Analysis Coverage Card */}
                 {analysis.architecture?.coverage && (
-                  <div className="card p-5 border-white/[.12] bg-[#0c0f13] space-y-3">
+                  <div className="card p-5 border-white/[.12] bg-[#0c0f13] space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[.08] pb-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-[9px] uppercase tracking-wider text-amber-400 font-semibold">
-                          Analysis Coverage & Evidence
+                          Analysis Coverage & Scope
                         </span>
                         {analysis.commit_sha && (
                           <span className="rounded bg-white/[.04] px-2 py-0.5 font-mono text-[10px] text-[#aaa69e] border border-white/[.08]">
@@ -579,9 +658,19 @@ export default function RepositoryPage() {
                           v{analysis.analyzer_version || '2.2.0'}
                         </span>
                       </div>
-                      <span className="text-xs text-[#77736c] font-mono">
-                        {analysis.architecture.coverage.is_partial ? 'Partial Coverage' : 'Verified Repository Scope'}
-                      </span>
+                      <div>
+                        {analysis.architecture.coverage.is_full_coverage ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[11px] font-medium text-emerald-400">
+                            <CheckCircle2 size={12} />
+                            Full AST Scope (100%)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[11px] font-medium text-amber-400">
+                            <AlertTriangle size={12} />
+                            Partial Scope ({analysis.architecture.coverage.coverage_percentage ?? Math.round(((analysis.architecture.coverage.successfully_parsed || 0) / Math.max(analysis.architecture.coverage.eligible_source_files || 1, 1)) * 100)}%)
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
@@ -616,6 +705,16 @@ export default function RepositoryPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Coverage Transparency Note */}
+                    {!analysis.architecture.coverage.is_full_coverage && (
+                      <div className="rounded-lg border border-white/[.07] bg-white/[.02] p-3 text-xs text-[#9ca3af] flex items-start gap-2.5">
+                        <Info size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold text-white">Coverage Transparency:</span> Findings and diagnostics are scoped to the {analysis.architecture.coverage.successfully_parsed ?? 0} AST-parsed files. Files analyzed via fallback heuristic regex ({analysis.architecture.coverage.partially_analyzed ?? 0}) or skipped as non-source/vendor assets ({ (analysis.architecture.coverage.unsupported_files || 0) + (analysis.architecture.coverage.skipped_files || 0) }) do not undergo deep AST rule checks.
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </section>
@@ -675,6 +774,7 @@ export default function RepositoryPage() {
                   repo={analysis.repo_name}
                   defaultBranch={analysis.default_branch}
                   initialCategory={diagnosticsCategory}
+                  coverage={analysis.architecture?.coverage}
                 />
               </section>
             )}

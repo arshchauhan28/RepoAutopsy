@@ -58,9 +58,24 @@ function AnalyzeContent() {
   }
 
   const sampleRepositories = [
-    { label: 'fastapi/fastapi', url: 'https://github.com/fastapi/fastapi' },
-    { label: 'pallets/flask', url: 'https://github.com/pallets/flask' },
-    { label: 'expressjs/express', url: 'https://github.com/expressjs/express' },
+    {
+      label: 'encode/starlette',
+      url: 'https://github.com/encode/starlette',
+      badge: 'Python',
+      hint: '148 files · ASGI core',
+    },
+    {
+      label: 'pallets/flask',
+      url: 'https://github.com/pallets/flask',
+      badge: 'Python',
+      hint: '231 files · WSGI framework',
+    },
+    {
+      label: 'expressjs/express',
+      url: 'https://github.com/expressjs/express',
+      badge: 'JavaScript',
+      hint: '216 files · Node.js framework',
+    },
   ]
 
   return (
@@ -134,20 +149,35 @@ function AnalyzeContent() {
             </div>
           </form>
 
-          {/* QUICK SAMPLES */}
-          <div className="space-y-2 pt-2">
-            <span className="text-xs font-mono text-[#6b7280] uppercase tracking-wider block">
-              Or explore popular open-source repositories:
-            </span>
-            <div className="flex flex-wrap gap-2">
+          {/* VERIFIED SAMPLE REPOSITORIES */}
+          <div className="space-y-2.5 pt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-[#aaa69e] uppercase tracking-wider">
+                Try a verified example:
+              </span>
+              <span className="rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.2 font-mono text-[9px] text-emerald-400 font-semibold">
+                ✓ Intake Tested
+              </span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
               {sampleRepositories.map((sample) => (
                 <button
                   key={sample.url}
                   type="button"
                   onClick={() => setUrl(sample.url)}
-                  className="rounded-md border border-white/[.08] bg-white/[.02] px-3 py-2 font-mono text-xs text-[#9ca3af] hover:border-amber-400/40 hover:text-white transition-colors min-h-[38px] truncate max-w-full"
+                  className="rounded-lg border border-white/[.08] bg-white/[.02] p-2.5 text-left hover:border-amber-400/40 hover:bg-white/[.04] transition group"
                 >
-                  {sample.label}
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-mono text-xs font-semibold text-white group-hover:text-amber-400 truncate">
+                      {sample.label}
+                    </span>
+                    <span className="font-mono text-[9px] rounded bg-white/[.06] px-1.5 py-0.2 text-[#8e8a82]">
+                      {sample.badge}
+                    </span>
+                  </div>
+                  <div className="mt-1 font-mono text-[10px] text-[#6b7280]">
+                    {sample.hint}
+                  </div>
                 </button>
               ))}
             </div>
