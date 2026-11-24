@@ -214,23 +214,24 @@ export default function RepositoryPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button
               onClick={() => setIsPRModalOpen(true)}
               variant="secondary"
               size="sm"
-              leftIcon={<GitPullRequest size={13} className="text-amber-400" />}
+              leftIcon={<GitPullRequest size={13} className="text-amber-400 shrink-0" />}
               title="Analyze a GitHub Pull Request for this repository"
-              className="border-amber-400/30 hover:border-amber-400/50"
+              className="border-amber-400/30 hover:border-amber-400/50 justify-center min-h-[38px]"
             >
               Analyze PR
             </Button>
 
-            <Link href={`/repositories/${analysis.id}/report`}>
+            <Link href={`/repositories/${analysis.id}/report`} className="w-full sm:w-auto">
               <Button
                 variant="secondary"
                 size="sm"
-                leftIcon={<FileText size={13} />}
+                leftIcon={<FileText size={13} className="shrink-0" />}
+                className="w-full justify-center min-h-[38px]"
               >
                 Case Report
               </Button>
@@ -242,8 +243,9 @@ export default function RepositoryPage() {
               size="sm"
               isLoading={rerunning}
               disabled={['queued', 'running'].includes(analysis.status)}
-              leftIcon={<RefreshCw size={13} />}
+              leftIcon={<RefreshCw size={13} className="shrink-0" />}
               title="Re-run analysis with current code and engine"
+              className="justify-center min-h-[38px]"
             >
               {rerunning ? 'Starting…' : 'Re-run'}
             </Button>
@@ -252,6 +254,7 @@ export default function RepositoryPage() {
               onClick={load}
               variant="ghost"
               size="sm"
+              className="justify-center min-h-[38px]"
             >
               Refresh
             </Button>
@@ -357,11 +360,11 @@ export default function RepositoryPage() {
             ) : (
               <>
                 {/* CANONICAL 5-SECTION NAVIGATION BAR: Overview | Anatomy | Diagnostics | Case Report | CodeVitals */}
-                <nav className="sticky top-0 z-30 flex items-center justify-between gap-2 overflow-x-auto rounded-xl border border-white/[.12] bg-[#0c0f13]/95 p-1.5 shadow-xl backdrop-blur-md">
+                <nav className="sticky top-14 z-30 flex items-center justify-between gap-1 sm:gap-2 overflow-x-auto rounded-xl border border-white/[.12] bg-[#0c0f13]/95 p-1.5 shadow-xl backdrop-blur-md no-scrollbar">
               <div className="flex items-center gap-1 min-w-max">
                 <button
                   onClick={() => handleTabChange('overview')}
-                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`flex min-h-[40px] items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition shrink-0 ${
                     activeSection === 'overview'
                       ? 'bg-amber-400 text-black shadow-sm'
                       : 'text-[#aaa69e] hover:bg-white/[.04] hover:text-white'
@@ -372,7 +375,7 @@ export default function RepositoryPage() {
 
                 <button
                   onClick={() => handleTabChange('anatomy')}
-                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`flex min-h-[40px] items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition shrink-0 ${
                     activeSection === 'anatomy'
                       ? 'bg-amber-400 text-black shadow-sm'
                       : 'text-[#aaa69e] hover:bg-white/[.04] hover:text-white'
@@ -384,7 +387,7 @@ export default function RepositoryPage() {
 
                 <button
                   onClick={() => handleTabChange('diagnostics')}
-                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`flex min-h-[40px] items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition shrink-0 ${
                     activeSection === 'diagnostics'
                       ? 'bg-amber-400 text-black shadow-sm'
                       : 'text-[#aaa69e] hover:bg-white/[.04] hover:text-white'
@@ -407,7 +410,7 @@ export default function RepositoryPage() {
 
                 <button
                   onClick={() => handleTabChange('case-report')}
-                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`flex min-h-[40px] items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition shrink-0 ${
                     activeSection === 'case-report'
                       ? 'bg-amber-400 text-black shadow-sm'
                       : 'text-[#aaa69e] hover:bg-white/[.04] hover:text-white'
@@ -419,7 +422,7 @@ export default function RepositoryPage() {
 
                 <button
                   onClick={() => handleTabChange('codevitals')}
-                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`flex min-h-[40px] items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition shrink-0 ${
                     activeSection === 'codevitals'
                       ? 'bg-amber-400 text-black shadow-sm'
                       : 'text-[#aaa69e] hover:bg-white/[.04] hover:text-white'

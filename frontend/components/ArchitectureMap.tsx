@@ -1078,7 +1078,7 @@ function ArchitectureMapContent({
       className={`card relative overflow-hidden transition-all duration-300 ${
         isFullscreen
           ? 'fixed inset-0 z-50 m-0 h-screen w-screen rounded-none border-none bg-[#090a0c]'
-          : 'h-[620px] sm:h-[660px]'
+          : 'h-[500px] sm:h-[600px] lg:h-[660px]'
       }`}
     >
       {/* ========================================================= */}
@@ -2205,6 +2205,50 @@ function FileExplorerView({
           </div>
         )}
       </div>
+
+      {/* Mobile File Info Bottom Sheet */}
+      {selectedFile && (
+        <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-white/[.16] bg-[#0c0f13] p-4 shadow-2xl backdrop-blur-xl md:hidden max-h-[75vh] overflow-y-auto">
+          <div className="flex items-center justify-between border-b border-white/[.08] pb-3">
+            <div className="min-w-0 flex-1 pr-2">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-amber-400">File Details</span>
+              <h4 className="truncate text-sm font-semibold text-white">{selectedFile.name}</h4>
+            </div>
+            <button
+              onClick={() => setSelectedFile(null)}
+              className="rounded-lg p-1.5 text-[#8e8a82] hover:bg-white/[.06] hover:text-white"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className="space-y-3 pt-3 text-xs">
+            <div className="rounded border border-white/[.08] bg-black/40 p-2 font-mono text-[10px] text-amber-300 break-all">
+              {selectedFile.path}
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="rounded border border-white/[.06] bg-white/[.02] p-2">
+                <div className="font-mono text-[9px] uppercase text-[#77736c]">Lines</div>
+                <div className="font-mono text-sm font-bold text-white">{selectedFile.lines}</div>
+              </div>
+              <div className="rounded border border-white/[.06] bg-white/[.02] p-2">
+                <div className="font-mono text-[9px] uppercase text-[#77736c]">Size</div>
+                <div className="font-mono text-sm font-bold text-white">{Math.round((selectedFile.size || 0) / 1024)} KB</div>
+              </div>
+            </div>
+            {makeGithubLink(selectedFile.path) && (
+              <a
+                href={makeGithubLink(selectedFile.path)!}
+                target="_blank"
+                rel="noreferrer"
+                className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/15 py-2.5 text-xs font-semibold text-amber-300 hover:bg-amber-400/25"
+              >
+                <span>View on GitHub</span>
+                <ExternalLink size={13} />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

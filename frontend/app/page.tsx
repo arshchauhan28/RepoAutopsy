@@ -87,91 +87,91 @@ export default function Home() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-12 gap-10 lg:gap-8 xl:gap-12 items-center">
               {/* LEFT COLUMN: Product Value Proposition */}
-              <div className="lg:col-span-7 xl:col-span-6 space-y-6">
-                <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-amber-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  DEVELOPER CODEBASE INTELLIGENCE
+              <div className="min-w-0 lg:col-span-7 xl:col-span-6 space-y-5 sm:space-y-6">
+                <div className="inline-flex max-w-full items-center gap-1.5 xs:gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 xs:px-3 py-1 font-mono text-[10px] xs:text-[11px] uppercase tracking-wider text-amber-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                  <span className="truncate">CODEBASE INTELLIGENCE</span>
                 </div>
 
-                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl lg:text-[50px] leading-[1.12]">
+                <h1 className="text-xl xs:text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl lg:text-[48px] leading-[1.15] break-words">
                   Understand your codebase.
-                  <span className="block text-[#9ca3af] mt-1.5 font-normal text-2xl sm:text-3xl md:text-4xl lg:text-[38px]">
+                  <span className="block text-[#9ca3af] mt-1.5 font-normal text-lg xs:text-2xl sm:text-3xl md:text-4xl lg:text-[36px] break-words">
                     Diagnose. Defend. Verify.
                   </span>
                 </h1>
 
-                <p className="text-sm sm:text-base leading-relaxed text-[#9ca3af] max-w-xl">
+                <p className="text-xs xs:text-sm sm:text-base leading-relaxed text-[#9ca3af] max-w-xl">
                   Explore repository architecture, investigate evidence-backed diagnostics, generate technical reports, and assess your team&apos;s codebase knowledge.
                 </p>
 
                 {/* Primary & Secondary Actions */}
-                <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <Link href="/analyze">
-                    <Button variant="primary" size="md" className="gap-2 font-semibold">
+                <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-3 pt-2">
+                  <Link href="/analyze" className="w-full xs:w-auto">
+                    <Button variant="primary" size="md" className="w-full xs:w-auto gap-2 font-semibold justify-center">
                       <span>Start Analyzing</span>
                       <ArrowRight size={14} />
                     </Button>
                   </Link>
-                  <a href="#capabilities">
-                    <Button variant="secondary" size="md">
+                  <a href="#capabilities" className="w-full xs:w-auto">
+                    <Button variant="secondary" size="md" className="w-full xs:w-auto justify-center">
                       Explore Capabilities
                     </Button>
                   </a>
                 </div>
 
                 {/* Technical Trust Strip */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-mono text-[#6b7280] pt-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-mono text-[#6b7280] pt-2">
                   <span className="inline-flex items-center gap-1.5 text-[#9ca3af]">
-                    <CheckCircle2 size={13} className="text-amber-400" /> Deterministic AST Analysis
+                    <CheckCircle2 size={13} className="text-amber-400 shrink-0" /> Deterministic AST Analysis
                   </span>
-                  <span>•</span>
-                  <span>Public & Private Repositories</span>
-                  <span>•</span>
-                  <span>Zero Installation Required</span>
+                  <span className="hidden sm:inline" aria-hidden="true">•</span>
+                  <span>Public & Private Repos</span>
+                  <span className="hidden sm:inline" aria-hidden="true">•</span>
+                  <span>Zero Installation</span>
                 </div>
               </div>
 
               {/* RIGHT COLUMN: Realistic Restrained Product Preview */}
-              <div className="lg:col-span-5 xl:col-span-6">
+              <div className="min-w-0 lg:col-span-5 xl:col-span-6">
                 <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
                   {/* Subtle ambient glow behind card */}
                   <div className="absolute -inset-1 rounded-2xl bg-amber-400/5 blur-xl -z-10" />
 
                   <div className="rounded-xl border border-white/[.12] bg-[#0c0f13] shadow-2xl overflow-hidden text-[#f3f4f6]">
                     {/* Window Header */}
-                    <div className="flex items-center justify-between border-b border-white/[.08] bg-[#0e1116] px-4 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1.5">
+                    <div className="flex items-center justify-between border-b border-white/[.08] bg-[#0e1116] px-3 sm:px-4 py-2.5 gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <div className="flex gap-1.5 shrink-0">
                           <div className="h-2.5 w-2.5 rounded-full bg-white/[.12]" />
                           <div className="h-2.5 w-2.5 rounded-full bg-white/[.12]" />
                           <div className="h-2.5 w-2.5 rounded-full bg-white/[.12]" />
                         </div>
-                        <span className="ml-2 font-mono text-[11px] text-[#6b7280] flex items-center gap-1.5">
-                          <FolderGit2 size={12} className="text-[#9ca3af]" />
-                          repoautopsy/core-engine
+                        <span className="ml-1 sm:ml-2 font-mono text-[11px] text-[#6b7280] flex items-center gap-1.5 min-w-0">
+                          <FolderGit2 size={12} className="text-[#9ca3af] shrink-0" />
+                          <span className="truncate max-w-[100px] xs:max-w-none">repoautopsy/core-engine</span>
                         </span>
-                        <span className="rounded bg-white/[.04] px-1.5 py-0.5 font-mono text-[10px] text-[#9ca3af] border border-white/[.06]">
+                        <span className="hidden xs:inline-block rounded bg-white/[.04] px-1.5 py-0.5 font-mono text-[10px] text-[#9ca3af] border border-white/[.06] shrink-0">
                           main
                         </span>
                       </div>
 
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-300">
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] xs:text-[10px] uppercase tracking-wider text-amber-300 shrink-0">
                         <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                        Example Preview
+                        <span><span className="hidden xs:inline">Example </span>Preview</span>
                       </div>
                     </div>
 
                     {/* Preview Subheader Tabs */}
-                    <div className="flex items-center gap-4 border-b border-white/[.06] bg-[#0b0d10] px-4 text-xs font-mono">
-                      <div className="border-b-2 border-amber-400 py-2 font-medium text-white flex items-center gap-1.5">
+                    <div className="flex items-center gap-3 sm:gap-4 border-b border-white/[.06] bg-[#0b0d10] px-3 sm:px-4 text-xs font-mono overflow-x-auto no-scrollbar">
+                      <div className="border-b-2 border-amber-400 py-2 font-medium text-white flex items-center gap-1.5 shrink-0">
                         <GitBranch size={12} className="text-amber-400" />
                         <span>Architecture</span>
                       </div>
-                      <div className="py-2 text-[#6b7280] flex items-center gap-1.5">
+                      <div className="py-2 text-[#6b7280] flex items-center gap-1.5 shrink-0">
                         <ShieldAlert size={12} />
                         <span>Diagnostics (2)</span>
                       </div>
-                      <div className="py-2 text-[#6b7280] flex items-center gap-1.5">
+                      <div className="py-2 text-[#6b7280] flex items-center gap-1.5 shrink-0">
                         <Code2 size={12} />
                         <span>CodeVitals</span>
                       </div>
@@ -190,7 +190,7 @@ export default function Home() {
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-4 gap-2 text-center">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                           <div className="rounded border border-white/[.08] bg-white/[.02] p-2 hover:border-amber-400/30 transition-colors">
                             <div className="font-mono text-[10px] text-amber-400/90 font-medium truncate">Web Client</div>
                             <div className="font-mono text-[9px] text-[#6b7280] mt-0.5">Next.js 16</div>
@@ -209,7 +209,7 @@ export default function Home() {
                           </div>
                         </div>
 
-                        <div className="mt-1 flex items-center justify-between px-6 text-[#4b5563] text-[10px] font-mono select-none" aria-hidden="true">
+                        <div className="mt-1 hidden sm:flex items-center justify-between px-6 text-[#4b5563] text-[10px] font-mono select-none" aria-hidden="true">
                           <span>──────►</span>
                           <span>──────►</span>
                           <span>──────►</span>
@@ -231,17 +231,17 @@ export default function Home() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-1.5 font-medium text-amber-200 text-[11px]">
                               <AlertTriangle size={12} className="text-amber-400 shrink-0" />
-                              <span>Circular import cycle between services</span>
+                              <span className="truncate">Circular import cycle</span>
                             </div>
                             <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-300 shrink-0">
                               Warning
                             </span>
                           </div>
-                          <div className="mt-1 flex items-center gap-2 font-mono text-[10px] text-[#9ca3af]">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] text-[#9ca3af]">
                             <span className="text-[#d1d5db]">auth_service.py</span>
                             <span className="text-amber-400">⇄</span>
                             <span className="text-[#d1d5db]">session_manager.py</span>
-                            <span className="text-[#6b7280] ml-auto">Rule: AST-DEP-02</span>
+                            <span className="text-[#6b7280] sm:ml-auto">AST-DEP-02</span>
                           </div>
                         </div>
 
@@ -249,21 +249,21 @@ export default function Home() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-1.5 font-medium text-[#e5e7eb] text-[11px]">
                               <ShieldCheck size={12} className="text-emerald-400 shrink-0" />
-                              <span>Workspace isolation & multi-tenant boundaries</span>
+                              <span className="truncate">Workspace isolation boundaries</span>
                             </div>
                             <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 shrink-0">
                               Verified
                             </span>
                           </div>
-                          <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-[#9ca3af]">
-                            <span>Strict tenant_id checks enforced in all 14 routes</span>
+                          <div className="mt-1 flex flex-wrap items-center justify-between gap-1 font-mono text-[10px] text-[#9ca3af]">
+                            <span>Strict tenant_id checks enforced</span>
                             <span className="text-emerald-400/80">100% Pass</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Metric Status Footer */}
-                      <div className="flex items-center justify-between border-t border-white/[.06] pt-2 text-[10px] font-mono text-[#6b7280]">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[.06] pt-2 text-[10px] font-mono text-[#6b7280]">
                         <span>Components: <strong className="text-[#d1d5db]">14</strong></span>
                         <span>Dependencies: <strong className="text-[#d1d5db]">38</strong></span>
                         <span>Health Score: <strong className="text-amber-400">92/100</strong></span>

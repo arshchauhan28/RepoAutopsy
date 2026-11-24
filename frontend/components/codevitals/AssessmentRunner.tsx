@@ -204,22 +204,22 @@ export function AssessmentRunner({ session: initialSession, onCompleted, onExit 
   return (
     <div className="max-w-3xl mx-auto space-y-5 reveal">
       {/* TOP HEADER: NAVIGATION & PROGRESS */}
-      <div className="flex items-center justify-between border-b border-white/[.08] pb-3 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[.08] pb-3 text-xs">
         <button
           onClick={onExit}
-          className="flex items-center gap-1.5 text-[#8e8a82] hover:text-white transition"
+          className="flex min-h-[36px] items-center gap-1.5 text-[#8e8a82] hover:text-white transition"
         >
           <ArrowLeft size={14} />
           <span>Exit Assessment</span>
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <span className="font-mono text-[11px] text-[#8e8a82]">
             Answered: <strong className="text-white">{answeredCount}</strong> / {turns.length}
           </span>
           <button
             onClick={() => setShowReviewModal(true)}
-            className="rounded border border-amber-400/40 bg-amber-400/15 px-3 py-1 font-mono text-[10px] font-bold text-amber-300 hover:bg-amber-400/25 transition"
+            className="rounded border border-amber-400/40 bg-amber-400/15 px-3 py-1.5 font-mono text-[10px] font-bold text-amber-300 hover:bg-amber-400/25 transition min-h-[36px]"
           >
             Review & Submit
           </button>
@@ -455,7 +455,7 @@ export function AssessmentRunner({ session: initialSession, onCompleted, onExit 
               <button
                 key={t.id}
                 onClick={() => setCurrentIndex(idx)}
-                className={`h-7 w-7 rounded font-mono text-[10px] font-bold transition flex items-center justify-center ${
+                className={`h-8 w-8 sm:h-7 sm:w-7 rounded font-mono text-[11px] sm:text-[10px] font-bold transition flex items-center justify-center ${
                   isCurr
                     ? 'border border-amber-400 bg-amber-400 text-black'
                     : isAns

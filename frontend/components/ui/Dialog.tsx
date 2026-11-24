@@ -64,7 +64,7 @@ export function Dialog({
       {/* Modal Box */}
       <div
         ref={dialogRef}
-        className={`relative w-full ${widthClasses[maxWidth]} rounded-xl border border-white/[.12] bg-[#0c0f13] p-5 sm:p-6 shadow-2xl transition-all z-10 max-h-[90vh] flex flex-col`}
+        className={`relative w-full ${widthClasses[maxWidth]} rounded-xl border border-white/[.12] bg-[#0c0f13] p-4 sm:p-6 shadow-2xl transition-all z-10 max-h-[calc(100dvh-2rem)] flex flex-col`}
       >
         <div className="flex items-start justify-between gap-4 pb-3 border-b border-white/[.08]">
           <div>

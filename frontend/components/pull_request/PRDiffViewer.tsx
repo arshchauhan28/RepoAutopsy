@@ -59,25 +59,22 @@ export function PRDiffViewer({ files }: PRDiffViewerProps) {
   const renderPatchLines = (patch: string) => {
     const lines = patch.split('\n')
     return (
-      <div className="font-mono text-[11px] leading-5">
+      <div className="min-w-max font-mono text-[11px] leading-5 py-1">
         {lines.map((line, idx) => {
           let bgClass = 'text-[#c8c4bc]'
-          let prefixSign = ' '
 
           if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('@@')) {
             bgClass = 'bg-blue-500/10 text-blue-300 select-none py-0.5'
           } else if (line.startsWith('+')) {
             bgClass = 'bg-emerald-500/10 text-emerald-300 border-l-2 border-emerald-500'
-            prefixSign = '+'
           } else if (line.startsWith('-')) {
             bgClass = 'bg-rose-500/10 text-rose-300 border-l-2 border-rose-500'
-            prefixSign = '-'
           }
 
           return (
-            <div key={idx} className={`flex px-2 py-0.2 hover:bg-white/[.02] ${bgClass}`}>
-              <span className="w-8 select-none text-right pr-2 text-[#55524c]">{idx + 1}</span>
-              <pre className="overflow-x-auto whitespace-pre font-mono">{line}</pre>
+            <div key={idx} className={`flex px-2 py-0.5 hover:bg-white/[.02] ${bgClass}`}>
+              <span className="w-9 select-none text-right pr-2 text-[#55524c] shrink-0 font-mono text-[10px]">{idx + 1}</span>
+              <span className="whitespace-pre font-mono pr-4">{line}</span>
             </div>
           )
         })}
@@ -88,7 +85,7 @@ export function PRDiffViewer({ files }: PRDiffViewerProps) {
   return (
     <div className="grid gap-4 lg:grid-cols-12">
       {/* File Sidebar (4 cols) */}
-      <div className="card p-3 lg:col-span-4 flex flex-col h-[650px]">
+      <div className="card p-3 lg:col-span-4 flex flex-col h-52 sm:h-64 lg:h-[650px]">
         <div className="relative mb-2">
           <Search size={13} className="absolute left-2.5 top-2.5 text-[#55524c]" />
           <input
@@ -136,7 +133,7 @@ export function PRDiffViewer({ files }: PRDiffViewerProps) {
       </div>
 
       {/* Diff Code Inspector (8 cols) */}
-      <div className="card p-4 lg:col-span-8 flex flex-col h-[650px]">
+      <div className="card p-3 sm:p-4 lg:col-span-8 flex flex-col h-[480px] sm:h-[560px] lg:h-[650px]">
         {currentFile ? (
           <>
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[.08] pb-3 mb-3">

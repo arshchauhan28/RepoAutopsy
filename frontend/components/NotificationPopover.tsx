@@ -82,8 +82,8 @@ export function NotificationPopover({ unreadCount, onCountChange }: Notification
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-10 z-50 w-80 sm:w-96 rounded-xl border border-white/[.12] bg-[#0c0f13] p-4 shadow-2xl backdrop-blur-xl">
+          <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs sm:bg-transparent" onClick={() => setIsOpen(false)} />
+          <div className="fixed inset-x-3 top-16 z-50 sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:w-96 max-w-[calc(100vw-1.5rem)] rounded-xl border border-white/[.12] bg-[#0c0f13] p-4 shadow-2xl backdrop-blur-xl">
             <div className="flex items-center justify-between border-b border-white/[.08] pb-3">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-xs text-white">Notifications</span>

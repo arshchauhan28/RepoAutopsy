@@ -291,11 +291,11 @@ export function FindingList({
       </div>
 
       {/* DIAGNOSTICS PRIMARY TABS: Detected Issues vs Recommended Improvements */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[.08] pb-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[.08] pb-3">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('issues')}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            className={`flex items-center gap-2 rounded-lg px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition shrink-0 min-h-[40px] ${
               activeTab === 'issues'
                 ? 'bg-amber-400 text-black shadow-sm'
                 : 'text-[#aaa69e] hover:bg-white/[.05] hover:text-white'
@@ -314,14 +314,14 @@ export function FindingList({
 
           <button
             onClick={() => setActiveTab('recommendations')}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            className={`flex items-center gap-2 rounded-lg px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition shrink-0 min-h-[40px] ${
               activeTab === 'recommendations'
                 ? 'bg-amber-400 text-black shadow-sm'
                 : 'text-[#aaa69e] hover:bg-white/[.05] hover:text-white'
             }`}
           >
             <Wrench size={16} />
-            <span>Recommended Improvements</span>
+            <span>Recommendations</span>
             {recommendations.length > 0 && (
               <span
                 className={`rounded px-1.5 py-0.2 font-mono text-[10px] ${
@@ -335,7 +335,7 @@ export function FindingList({
         </div>
 
         {/* Search Bar */}
-        <div className="relative min-w-[220px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[240px]">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#77736c]" />
           <input
             type="text"
@@ -344,7 +344,7 @@ export function FindingList({
             placeholder={
               activeTab === 'issues' ? 'Search issues, files, risks...' : 'Search recommended fixes...'
             }
-            className="w-full rounded border border-white/[.1] bg-black/30 py-1.5 pl-8 pr-3 text-xs text-white placeholder:text-[#55514b] focus:border-amber-400 focus:outline-none"
+            className="w-full rounded border border-white/[.1] bg-black/30 py-2 pl-8 pr-3 text-xs text-white placeholder:text-[#55514b] focus:border-amber-400 focus:outline-none min-h-[40px]"
           />
         </div>
       </div>

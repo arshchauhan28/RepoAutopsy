@@ -126,10 +126,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2.5 w-full sm:w-auto">
             <Link
               href="/analyze"
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-amber-400/40 bg-amber-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-300"
+              className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded border border-amber-400/40 bg-amber-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-300 w-full sm:w-auto"
             >
               <Plus size={14} />
               <span>Analyze Repository</span>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
 
             <Link
               href="/workspaces"
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded border border-white/[.15] bg-white/[.04] px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/[.08]"
+              className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded border border-white/[.15] bg-white/[.04] px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/[.08] w-full sm:w-auto"
             >
               <Building2 size={13} />
               <span>Workspaces</span>
@@ -146,34 +146,34 @@ export default function DashboardPage() {
         </div>
 
         {/* METRICS ROW */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="card p-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="card p-3.5 sm:p-4">
             <div className="font-mono text-[9px] uppercase tracking-wider text-[#77736c]">Repositories</div>
-            <div className="mt-1 font-mono text-2xl font-bold text-white">{metrics.connected_repositories_count}</div>
+            <div className="mt-1 font-mono text-xl sm:text-2xl font-bold text-white">{metrics.connected_repositories_count}</div>
             <div className="mt-1 text-[11px] text-[#77736c]">Connected in workspaces</div>
           </div>
 
-          <div className="card p-4">
+          <div className="card p-3.5 sm:p-4">
             <div className="font-mono text-[9px] uppercase tracking-wider text-[#77736c]">Analyses</div>
-            <div className="mt-1 font-mono text-2xl font-bold text-white">{metrics.analyses_count}</div>
+            <div className="mt-1 font-mono text-xl sm:text-2xl font-bold text-white">{metrics.analyses_count}</div>
             <div className="mt-1 text-[11px] text-[#77736c]">Completed snapshot runs</div>
           </div>
 
-          <div className="card p-4">
+          <div className="card p-3.5 sm:p-4">
             <div className="font-mono text-[9px] uppercase tracking-wider text-[#77736c]">PR Reviews</div>
-            <div className="mt-1 font-mono text-2xl font-bold text-indigo-400">{metrics.pr_analyses_count}</div>
+            <div className="mt-1 font-mono text-xl sm:text-2xl font-bold text-indigo-400">{metrics.pr_analyses_count}</div>
             <div className="mt-1 text-[11px] text-[#77736c]">Impact autopsies</div>
           </div>
 
-          <div className="card p-4">
+          <div className="card p-3.5 sm:p-4">
             <div className="font-mono text-[9px] uppercase tracking-wider text-[#77736c]">Workspaces</div>
-            <div className="mt-1 font-mono text-2xl font-bold text-amber-300">{metrics.workspaces_count}</div>
+            <div className="mt-1 font-mono text-xl sm:text-2xl font-bold text-amber-300">{metrics.workspaces_count}</div>
             <div className="mt-1 text-[11px] text-[#77736c]">Personal & team groups</div>
           </div>
 
-          <div className="card p-4">
+          <div className="card p-3.5 sm:p-4 col-span-2 sm:col-span-1">
             <div className="font-mono text-[9px] uppercase tracking-wider text-[#77736c]">CodeVitals</div>
-            <div className="mt-1 font-mono text-2xl font-bold text-emerald-400">{metrics.codevitals_sessions_count}</div>
+            <div className="mt-1 font-mono text-xl sm:text-2xl font-bold text-emerald-400">{metrics.codevitals_sessions_count}</div>
             <div className="mt-1 text-[11px] text-[#77736c]">Completed assessments</div>
           </div>
         </div>

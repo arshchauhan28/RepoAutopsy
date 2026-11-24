@@ -1,0 +1,427 @@
+{
+  "totalTests": 60,
+  "passedTests": 60,
+  "allPassed": true,
+  "results": [
+    {
+      "vp": "Small mobile (320x568)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 320,
+      "clientWidth": 320
+    },
+    {
+      "vp": "Small mobile (320x568)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 320,
+      "clientWidth": 320
+    },
+    {
+      "vp": "Small mobile (320x568)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 320,
+      "clientWidth": 320
+    },
+    {
+      "vp": "Small mobile (320x568)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 320,
+      "clientWidth": 320
+    },
+    {
+      "vp": "Compact Android (360x800)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 360,
+      "clientWidth": 360
+    },
+    {
+      "vp": "Compact Android (360x800)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 360,
+      "clientWidth": 360
+    },
+    {
+      "vp": "Compact Android (360x800)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 360,
+      "clientWidth": 360
+    },
+    {
+      "vp": "Compact Android (360x800)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 360,
+      "clientWidth": 360
+    },
+    {
+      "vp": "Older iPhone (375x667)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 375,
+      "clientWidth": 375
+    },
+    {
+      "vp": "Older iPhone (375x667)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 375,
+      "clientWidth": 375
+    },
+    {
+      "vp": "Older iPhone (375x667)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 375,
+      "clientWidth": 375
+    },
+    {
+      "vp": "Older iPhone (375x667)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 375,
+      "clientWidth": 375
+    },
+    {
+      "vp": "Modern iPhone (390x844)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 390,
+      "clientWidth": 390
+    },
+    {
+      "vp": "Modern iPhone (390x844)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 390,
+      "clientWidth": 390
+    },
+    {
+      "vp": "Modern iPhone (390x844)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 390,
+      "clientWidth": 390
+    },
+    {
+      "vp": "Modern iPhone (390x844)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 390,
+      "clientWidth": 390
+    },
+    {
+      "vp": "Modern Android (393x873)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 393,
+      "clientWidth": 393
+    },
+    {
+      "vp": "Modern Android (393x873)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 393,
+      "clientWidth": 393
+    },
+    {
+      "vp": "Modern Android (393x873)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 393,
+      "clientWidth": 393
+    },
+    {
+      "vp": "Modern Android (393x873)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 393,
+      "clientWidth": 393
+    },
+    {
+      "vp": "Larger Android (412x915)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 412,
+      "clientWidth": 412
+    },
+    {
+      "vp": "Larger Android (412x915)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 412,
+      "clientWidth": 412
+    },
+    {
+      "vp": "Larger Android (412x915)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 412,
+      "clientWidth": 412
+    },
+    {
+      "vp": "Larger Android (412x915)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 412,
+      "clientWidth": 412
+    },
+    {
+      "vp": "Large iPhone (430x932)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 430,
+      "clientWidth": 430
+    },
+    {
+      "vp": "Large iPhone (430x932)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 430,
+      "clientWidth": 430
+    },
+    {
+      "vp": "Large iPhone (430x932)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 430,
+      "clientWidth": 430
+    },
+    {
+      "vp": "Large iPhone (430x932)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 430,
+      "clientWidth": 430
+    },
+    {
+      "vp": "Small mobile landscape (568x320)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 568,
+      "clientWidth": 568
+    },
+    {
+      "vp": "Small mobile landscape (568x320)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 568,
+      "clientWidth": 568
+    },
+    {
+      "vp": "Small mobile landscape (568x320)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 568,
+      "clientWidth": 568
+    },
+    {
+      "vp": "Small mobile landscape (568x320)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 568,
+      "clientWidth": 568
+    },
+    {
+      "vp": "Mobile landscape (667x375)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 667,
+      "clientWidth": 667
+    },
+    {
+      "vp": "Mobile landscape (667x375)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 667,
+      "clientWidth": 667
+    },
+    {
+      "vp": "Mobile landscape (667x375)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 667,
+      "clientWidth": 667
+    },
+    {
+      "vp": "Mobile landscape (667x375)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 667,
+      "clientWidth": 667
+    },
+    {
+      "vp": "Modern mobile landscape (844x390)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 844,
+      "clientWidth": 844
+    },
+    {
+      "vp": "Modern mobile landscape (844x390)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 844,
+      "clientWidth": 844
+    },
+    {
+      "vp": "Modern mobile landscape (844x390)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 844,
+      "clientWidth": 844
+    },
+    {
+      "vp": "Modern mobile landscape (844x390)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 844,
+      "clientWidth": 844
+    },
+    {
+      "vp": "Tablet portrait (768x1024)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 768,
+      "clientWidth": 768
+    },
+    {
+      "vp": "Tablet portrait (768x1024)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 768,
+      "clientWidth": 768
+    },
+    {
+      "vp": "Tablet portrait (768x1024)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 768,
+      "clientWidth": 768
+    },
+    {
+      "vp": "Tablet portrait (768x1024)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 768,
+      "clientWidth": 768
+    },
+    {
+      "vp": "Tablet landscape (1024x768)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 1024,
+      "clientWidth": 1024
+    },
+    {
+      "vp": "Tablet landscape (1024x768)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 1024,
+      "clientWidth": 1024
+    },
+    {
+      "vp": "Tablet landscape (1024x768)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 1024,
+      "clientWidth": 1024
+    },
+    {
+      "vp": "Tablet landscape (1024x768)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 1024,
+      "clientWidth": 1024
+    },
+    {
+      "vp": "Laptop (1280x800)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 1280,
+      "clientWidth": 1280
+    },
+    {
+      "vp": "Laptop (1280x800)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 1280,
+      "clientWidth": 1280
+    },
+    {
+      "vp": "Laptop (1280x800)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 1280,
+      "clientWidth": 1280
+    },
+    {
+      "vp": "Laptop (1280x800)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 1280,
+      "clientWidth": 1280
+    },
+    {
+      "vp": "Desktop (1440x900)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    {
+      "vp": "Desktop (1440x900)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    {
+      "vp": "Desktop (1440x900)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    {
+      "vp": "Desktop (1440x900)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    {
+      "vp": "Large desktop (1920x1080)",
+      "route": "Homepage",
+      "status": "PASS",
+      "scrollWidth": 1920,
+      "clientWidth": 1920
+    },
+    {
+      "vp": "Large desktop (1920x1080)",
+      "route": "Analyze",
+      "status": "PASS",
+      "scrollWidth": 1920,
+      "clientWidth": 1920
+    },
+    {
+      "vp": "Large desktop (1920x1080)",
+      "route": "Dashboard",
+      "status": "PASS",
+      "scrollWidth": 1920,
+      "clientWidth": 1920
+    },
+    {
+      "vp": "Large desktop (1920x1080)",
+      "route": "Workspaces",
+      "status": "PASS",
+      "scrollWidth": 1920,
+      "clientWidth": 1920
+    }
+  ]
+}

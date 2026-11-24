@@ -49,6 +49,18 @@ export function Nav() {
     setUserMenuOpen(false)
   }, [pathname])
 
+  // Prevent background scrolling when mobile drawer is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [open])
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -88,7 +100,7 @@ export function Nav() {
         <div className="flex items-center gap-6">
           <Brand />
 
-          <nav className="hidden items-center gap-1 sm:flex" aria-label="Main Navigation">
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Main Navigation">
             <Link
               href="/analyze"
               className={`rounded-md px-3 py-1.5 font-mono text-[11px] uppercase tracking-[.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
@@ -134,7 +146,7 @@ export function Nav() {
         </div>
 
         {/* RIGHT ACTION CONTROLS */}
-        <div className="hidden sm:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3">
           {user ? (
             <>
               <NotificationPopover
@@ -229,7 +241,7 @@ export function Nav() {
         </div>
 
         {/* MOBILE HAMBURGER BUTTON */}
-        <div className="flex items-center gap-2 sm:hidden">
+        <div className="flex items-center gap-2 md:hidden">
           {user && (
             <NotificationPopover
               unreadCount={unreadCount}
@@ -249,73 +261,106 @@ export function Nav() {
         </div>
       </div>
 
-      {/* MOBILE DRAWER */}
+      {/* MOBILE BACKDROP & DRAWER */}
+      {open && (
+        <div
+          className="fixed inset-0 top-14 z-40 bg-black/75 backdrop-blur-sm md:hidden"
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       <div
-        className={`overflow-hidden border-t border-white/[.06] bg-[#0b0d10] transition-all duration-200 sm:hidden ${
-          open ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
+        className={`relative z-40 overflow-hidden border-t border-white/[.08] bg-[#0c0f13] transition-all duration-200 md:hidden ${
+          open ? 'max-h-[calc(100dvh-3.5rem)] overflow-y-auto opacity-100 shadow-2xl' : 'max-h-0 opacity-0 pointer-events-none'
         }`}
       >
-        <nav className="mx-auto flex max-w-7xl flex-col px-4 py-2" aria-label="Mobile Navigation">
+        <nav className="mx-auto flex max-w-7xl flex-col p-4 space-y-1" aria-label="Mobile Navigation">
           <Link
             onClick={() => setOpen(false)}
             href="/analyze"
-            className={`flex items-center justify-between border-b border-white/[.06] py-2.5 font-mono text-[11px] uppercase tracking-[.12em] ${
-              isAnalyzeActive ? 'text-white font-semibold' : 'text-[#9ca3af]'
+            className={`flex min-h-[44px] items-center justify-between rounded-lg px-3 py-2.5 font-mono text-xs uppercase tracking-[.12em] transition-colors ${
+              isAnalyzeActive
+                ? 'bg-amber-400/10 text-amber-300 font-semibold border border-amber-400/30'
+                : 'text-[#d1d5db] hover:bg-white/[.04] hover:text-white'
             }`}
           >
-            Analyze <ArrowUpRight size={13} />
+            <span>Analyze</span>
+            <ArrowUpRight size={14} className="opacity-70" />
           </Link>
           <Link
             onClick={() => setOpen(false)}
             href="/dashboard"
-            className={`flex items-center justify-between border-b border-white/[.06] py-2.5 font-mono text-[11px] uppercase tracking-[.12em] ${
-              isDashboardActive ? 'text-white font-semibold' : 'text-[#9ca3af]'
+            className={`flex min-h-[44px] items-center justify-between rounded-lg px-3 py-2.5 font-mono text-xs uppercase tracking-[.12em] transition-colors ${
+              isDashboardActive
+                ? 'bg-amber-400/10 text-amber-300 font-semibold border border-amber-400/30'
+                : 'text-[#d1d5db] hover:bg-white/[.04] hover:text-white'
             }`}
           >
-            Dashboard <ArrowUpRight size={13} />
+            <span>Dashboard</span>
+            <ArrowUpRight size={14} className="opacity-70" />
           </Link>
           <Link
             onClick={() => setOpen(false)}
             href="/workspaces"
-            className={`flex items-center justify-between border-b border-white/[.06] py-2.5 font-mono text-[11px] uppercase tracking-[.12em] ${
-              isWorkspacesActive ? 'text-white font-semibold' : 'text-[#9ca3af]'
+            className={`flex min-h-[44px] items-center justify-between rounded-lg px-3 py-2.5 font-mono text-xs uppercase tracking-[.12em] transition-colors ${
+              isWorkspacesActive
+                ? 'bg-amber-400/10 text-amber-300 font-semibold border border-amber-400/30'
+                : 'text-[#d1d5db] hover:bg-white/[.04] hover:text-white'
             }`}
           >
-            Workspaces <ArrowUpRight size={13} />
+            <span>Workspaces</span>
+            <ArrowUpRight size={14} className="opacity-70" />
           </Link>
           <a
             onClick={() => setOpen(false)}
             href="https://github.com/arshchauhan28/RepoAutopsy"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center justify-between border-b border-white/[.06] py-2.5 font-mono text-[11px] uppercase tracking-[.12em] text-[#6b7280]"
+            className="flex min-h-[44px] items-center justify-between rounded-lg px-3 py-2.5 font-mono text-xs uppercase tracking-[.12em] text-[#9ca3af] hover:bg-white/[.04] hover:text-white transition-colors"
           >
-            Source <Github size={13} />
+            <span className="flex items-center gap-2">
+              <Github size={14} /> Source
+            </span>
+            <ArrowUpRight size={14} className="opacity-70" />
           </a>
 
-          <div className="pt-3 pb-2">
+          {/* User Account / Auth Section */}
+          <div className="border-t border-white/[.08] pt-3 mt-2">
             {user ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {user.avatar_url && (
-                    <img src={user.avatar_url} alt={user.username} className="h-6 w-6 rounded-full" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 rounded-lg bg-white/[.03] border border-white/[.06] p-2.5">
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt={user.username} className="h-9 w-9 rounded-full border border-white/20 object-cover" />
+                  ) : (
+                    <div className="grid h-9 w-9 place-items-center rounded-full bg-amber-400/20 text-amber-300 font-mono text-xs font-bold">
+                      {user.username.slice(0, 1).toUpperCase()}
+                    </div>
                   )}
-                  <span className="font-mono text-xs text-white">@{user.username}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-xs text-white truncate">{user.display_name || user.username}</p>
+                    <p className="font-mono text-[11px] text-[#9ca3af] truncate">@{user.username}</p>
+                  </div>
                 </div>
+
                 <button
-                  onClick={handleLogout}
-                  className="font-mono text-xs text-rose-300 hover:underline"
+                  onClick={() => {
+                    setOpen(false)
+                    handleLogout()
+                  }}
+                  className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/[.08] py-2 text-xs font-medium text-rose-300 hover:bg-rose-500/20 transition-colors"
                 >
-                  Sign Out
+                  <LogOut size={14} />
+                  <span>Sign out</span>
                 </button>
               </div>
             ) : (
               <button
                 onClick={handleSignIn}
                 disabled={loginLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-white/[.14] bg-white/[.04] py-2 text-xs font-medium text-white transition-colors hover:bg-white/[.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-white/[.16] bg-white/[.06] py-2.5 text-xs font-medium text-white transition-colors hover:bg-white/[.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
               >
-                <Github size={14} className="shrink-0" />
+                <Github size={15} className="shrink-0" />
                 <span>{loginLoading ? 'Connecting…' : 'Continue with GitHub'}</span>
               </button>
             )}

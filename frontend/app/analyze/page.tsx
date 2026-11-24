@@ -72,17 +72,17 @@ function AnalyzeContent() {
             <span className="font-mono text-xs uppercase tracking-widest text-amber-400">
               New Repository Analysis
             </span>
-            <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-white">
+            <h1 className="mt-2 text-2xl xs:text-3xl sm:text-4xl font-semibold tracking-tight text-white">
               Inspect any GitHub repository
             </h1>
-            <p className="mt-3 text-sm text-[#9ca3af] leading-relaxed">
+            <p className="mt-2 sm:mt-3 text-xs xs:text-sm text-[#9ca3af] leading-relaxed">
               RepoAutopsy fetches the codebase safely, builds an interactive anatomy graph of subsystems, evaluates quality findings, and prepares a Case Report.
             </p>
           </div>
 
           <form
             onSubmit={submit}
-            className="rounded-xl border border-white/[.1] bg-[#0d0f12] p-6 sm:p-8 space-y-5 shadow-2xl"
+            className="rounded-xl border border-white/[.1] bg-[#0d0f12] p-4 sm:p-8 space-y-5 shadow-2xl"
           >
             <div>
               <Input
@@ -125,18 +125,18 @@ function AnalyzeContent() {
               {loading ? 'Queuing Analysis…' : 'Start Codebase Analysis'}
             </Button>
 
-            <div className="flex items-center justify-between pt-2 border-t border-white/[.06] text-xs text-[#9ca3af]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/[.06] text-xs text-[#9ca3af]">
               <span className="flex items-center gap-1.5 text-emerald-400">
-                <ShieldCheck size={14} />
+                <ShieldCheck size={14} className="shrink-0" />
                 <span>Deterministic AST Inspection</span>
               </span>
-              <span className="text-[#6b7280]">Supports TypeScript, Python, JavaScript, Go</span>
+              <span className="text-[#6b7280] text-[11px] sm:text-xs">Supports TypeScript, Python, JavaScript, Go</span>
             </div>
           </form>
 
           {/* QUICK SAMPLES */}
           <div className="space-y-2 pt-2">
-            <span className="text-xs font-mono text-[#6b7280] uppercase tracking-wider">
+            <span className="text-xs font-mono text-[#6b7280] uppercase tracking-wider block">
               Or explore popular open-source repositories:
             </span>
             <div className="flex flex-wrap gap-2">
@@ -145,7 +145,7 @@ function AnalyzeContent() {
                   key={sample.url}
                   type="button"
                   onClick={() => setUrl(sample.url)}
-                  className="rounded-md border border-white/[.08] bg-white/[.02] px-3 py-1.5 font-mono text-xs text-[#9ca3af] hover:border-amber-400/40 hover:text-white transition-colors"
+                  className="rounded-md border border-white/[.08] bg-white/[.02] px-3 py-2 font-mono text-xs text-[#9ca3af] hover:border-amber-400/40 hover:text-white transition-colors min-h-[38px] truncate max-w-full"
                 >
                   {sample.label}
                 </button>
