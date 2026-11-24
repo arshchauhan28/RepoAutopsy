@@ -220,10 +220,10 @@ export function Nav() {
             <button
               onClick={handleSignIn}
               disabled={loginLoading}
-              className="inline-flex items-center gap-1.5 rounded-md border border-white/[.15] bg-white/[.04] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[.1em] text-[#d1d5db] transition-colors hover:border-amber-400/50 hover:bg-white/[.08] hover:text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              className="inline-flex items-center gap-2 rounded-md border border-white/[.14] bg-white/[.04] px-3 py-1.5 text-xs font-medium text-[#e5e7eb] transition-colors hover:border-white/[.24] hover:bg-white/[.08] hover:text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08090b]"
             >
-              <Github size={13} />
-              <span>{loginLoading ? 'Redirecting…' : 'Sign in with GitHub'}</span>
+              <Github size={14} className="shrink-0" />
+              <span>{loginLoading ? 'Connecting…' : 'Continue with GitHub'}</span>
             </button>
           )}
         </div>
@@ -312,9 +312,11 @@ export function Nav() {
             ) : (
               <button
                 onClick={handleSignIn}
-                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-white/[.15] bg-white/[.04] py-2 font-mono text-[11px] uppercase tracking-[.1em] text-white"
+                disabled={loginLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-md border border-white/[.14] bg-white/[.04] py-2 text-xs font-medium text-white transition-colors hover:bg-white/[.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
               >
-                <Github size={13} /> Sign in with GitHub
+                <Github size={14} className="shrink-0" />
+                <span>{loginLoading ? 'Connecting…' : 'Continue with GitHub'}</span>
               </button>
             )}
           </div>

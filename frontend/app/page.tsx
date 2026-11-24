@@ -1,8 +1,6 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   ArrowRight,
   GitBranch,
@@ -10,14 +8,13 @@ import {
   Code2,
   FileText,
   GitPullRequest,
-  Github,
   CheckCircle2,
-  Terminal,
-  Search,
+  ShieldAlert,
+  AlertTriangle,
+  FolderGit2,
 } from 'lucide-react'
 import { Nav } from '@/components/Nav'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 
 const capabilities = [
   {
@@ -81,72 +78,206 @@ const steps = [
 ]
 
 export default function Home() {
-  const router = useRouter()
-  const [repoUrl, setRepoUrl] = useState('')
-
-  const handleAnalyzeSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (repoUrl.trim()) {
-      router.push(`/analyze?url=${encodeURIComponent(repoUrl.trim())}`)
-    } else {
-      router.push('/analyze')
-    }
-  }
-
   return (
     <div className="min-h-screen bg-[#08090b] text-[#f3f4f6]">
       <Nav />
       <main className="grid-bg overflow-hidden">
         {/* HERO SECTION */}
-        <section className="border-b border-white/[.08] relative">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 font-mono text-xs uppercase tracking-wider text-amber-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Developer Codebase Intelligence
+        <section className="border-b border-white/[.08] relative pt-12 pb-16 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-12 gap-10 lg:gap-8 xl:gap-12 items-center">
+              {/* LEFT COLUMN: Product Value Proposition */}
+              <div className="lg:col-span-7 xl:col-span-6 space-y-6">
+                <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-amber-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  DEVELOPER CODEBASE INTELLIGENCE
+                </div>
+
+                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl lg:text-[50px] leading-[1.12]">
+                  Understand your codebase.
+                  <span className="block text-[#9ca3af] mt-1.5 font-normal text-2xl sm:text-3xl md:text-4xl lg:text-[38px]">
+                    Diagnose. Defend. Verify.
+                  </span>
+                </h1>
+
+                <p className="text-sm sm:text-base leading-relaxed text-[#9ca3af] max-w-xl">
+                  Explore repository architecture, investigate evidence-backed diagnostics, generate technical reports, and assess your team&apos;s codebase knowledge.
+                </p>
+
+                {/* Primary & Secondary Actions */}
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <Link href="/analyze">
+                    <Button variant="primary" size="md" className="gap-2 font-semibold">
+                      <span>Start Analyzing</span>
+                      <ArrowRight size={14} />
+                    </Button>
+                  </Link>
+                  <a href="#capabilities">
+                    <Button variant="secondary" size="md">
+                      Explore Capabilities
+                    </Button>
+                  </a>
+                </div>
+
+                {/* Technical Trust Strip */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-mono text-[#6b7280] pt-2">
+                  <span className="inline-flex items-center gap-1.5 text-[#9ca3af]">
+                    <CheckCircle2 size={13} className="text-amber-400" /> Deterministic AST Analysis
+                  </span>
+                  <span>•</span>
+                  <span>Public & Private Repositories</span>
+                  <span>•</span>
+                  <span>Zero Installation Required</span>
+                </div>
               </div>
 
-              <h1 className="mt-6 text-3xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.1]">
-                Understand your codebase.
-                <span className="block text-[#9ca3af] mt-1">Diagnose, defend, and verify.</span>
-              </h1>
+              {/* RIGHT COLUMN: Realistic Restrained Product Preview */}
+              <div className="lg:col-span-5 xl:col-span-6">
+                <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
+                  {/* Subtle ambient glow behind card */}
+                  <div className="absolute -inset-1 rounded-2xl bg-amber-400/5 blur-xl -z-10" />
 
-              <p className="mt-6 text-sm sm:text-base leading-relaxed text-[#9ca3af] max-w-2xl">
-                RepoAutopsy turns any GitHub repository into an interactive architectural anatomy map, evidence-backed diagnostics, an executive case report, and team knowledge assessments.
-              </p>
+                  <div className="rounded-xl border border-white/[.12] bg-[#0c0f13] shadow-2xl overflow-hidden text-[#f3f4f6]">
+                    {/* Window Header */}
+                    <div className="flex items-center justify-between border-b border-white/[.08] bg-[#0e1116] px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1.5">
+                          <div className="h-2.5 w-2.5 rounded-full bg-white/[.12]" />
+                          <div className="h-2.5 w-2.5 rounded-full bg-white/[.12]" />
+                          <div className="h-2.5 w-2.5 rounded-full bg-white/[.12]" />
+                        </div>
+                        <span className="ml-2 font-mono text-[11px] text-[#6b7280] flex items-center gap-1.5">
+                          <FolderGit2 size={12} className="text-[#9ca3af]" />
+                          repoautopsy/core-engine
+                        </span>
+                        <span className="rounded bg-white/[.04] px-1.5 py-0.5 font-mono text-[10px] text-[#9ca3af] border border-white/[.06]">
+                          main
+                        </span>
+                      </div>
 
-              {/* QUICK REPOSITORY URL INPUT */}
-              <form onSubmit={handleAnalyzeSubmit} className="mt-8 flex flex-col sm:flex-row gap-2 max-w-xl">
-                <div className="relative flex-1">
-                  <Input
-                    type="url"
-                    value={repoUrl}
-                    onChange={(e) => setRepoUrl(e.target.value)}
-                    placeholder="https://github.com/owner/repository"
-                    leftIcon={<Github size={16} />}
-                    className="h-11 bg-black/40 text-sm"
-                    aria-label="GitHub Repository URL"
-                  />
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                        Example Preview
+                      </div>
+                    </div>
+
+                    {/* Preview Subheader Tabs */}
+                    <div className="flex items-center gap-4 border-b border-white/[.06] bg-[#0b0d10] px-4 text-xs font-mono">
+                      <div className="border-b-2 border-amber-400 py-2 font-medium text-white flex items-center gap-1.5">
+                        <GitBranch size={12} className="text-amber-400" />
+                        <span>Architecture</span>
+                      </div>
+                      <div className="py-2 text-[#6b7280] flex items-center gap-1.5">
+                        <ShieldAlert size={12} />
+                        <span>Diagnostics (2)</span>
+                      </div>
+                      <div className="py-2 text-[#6b7280] flex items-center gap-1.5">
+                        <Code2 size={12} />
+                        <span>CodeVitals</span>
+                      </div>
+                    </div>
+
+                    {/* Preview Body */}
+                    <div className="p-4 sm:p-5 space-y-4">
+                      {/* Architecture Subsystem Pipeline */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-[#6b7280]">
+                            Component Architecture Graph
+                          </span>
+                          <span className="font-mono text-[10px] text-amber-400/80">
+                            AST Extracted
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2 text-center">
+                          <div className="rounded border border-white/[.08] bg-white/[.02] p-2 hover:border-amber-400/30 transition-colors">
+                            <div className="font-mono text-[10px] text-amber-400/90 font-medium truncate">Web Client</div>
+                            <div className="font-mono text-[9px] text-[#6b7280] mt-0.5">Next.js 16</div>
+                          </div>
+                          <div className="rounded border border-white/[.08] bg-white/[.02] p-2 hover:border-amber-400/30 transition-colors">
+                            <div className="font-mono text-[10px] text-amber-400/90 font-medium truncate">API Gateway</div>
+                            <div className="font-mono text-[9px] text-[#6b7280] mt-0.5">FastAPI</div>
+                          </div>
+                          <div className="rounded border border-white/[.08] bg-white/[.02] p-2 hover:border-amber-400/30 transition-colors">
+                            <div className="font-mono text-[10px] text-amber-400/90 font-medium truncate">Analysis AST</div>
+                            <div className="font-mono text-[9px] text-[#6b7280] mt-0.5">Engine 2.2</div>
+                          </div>
+                          <div className="rounded border border-white/[.08] bg-white/[.02] p-2 hover:border-amber-400/30 transition-colors">
+                            <div className="font-mono text-[10px] text-amber-400/90 font-medium truncate">Knowledge DB</div>
+                            <div className="font-mono text-[9px] text-[#6b7280] mt-0.5">PostgreSQL</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-1 flex items-center justify-between px-6 text-[#4b5563] text-[10px] font-mono select-none" aria-hidden="true">
+                          <span>──────►</span>
+                          <span>──────►</span>
+                          <span>──────►</span>
+                        </div>
+                      </div>
+
+                      {/* Evidence-Backed Findings Preview */}
+                      <div className="border-t border-white/[.06] pt-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-[#6b7280]">
+                            Diagnostics & Findings
+                          </span>
+                          <span className="font-mono text-[10px] text-emerald-400/80">
+                            Verified Rules
+                          </span>
+                        </div>
+
+                        <div className="rounded border border-amber-400/20 bg-amber-400/[.03] p-2.5 text-xs">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-1.5 font-medium text-amber-200 text-[11px]">
+                              <AlertTriangle size={12} className="text-amber-400 shrink-0" />
+                              <span>Circular import cycle between services</span>
+                            </div>
+                            <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-300 shrink-0">
+                              Warning
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 font-mono text-[10px] text-[#9ca3af]">
+                            <span className="text-[#d1d5db]">auth_service.py</span>
+                            <span className="text-amber-400">⇄</span>
+                            <span className="text-[#d1d5db]">session_manager.py</span>
+                            <span className="text-[#6b7280] ml-auto">Rule: AST-DEP-02</span>
+                          </div>
+                        </div>
+
+                        <div className="rounded border border-white/[.08] bg-white/[.02] p-2.5 text-xs">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-1.5 font-medium text-[#e5e7eb] text-[11px]">
+                              <ShieldCheck size={12} className="text-emerald-400 shrink-0" />
+                              <span>Workspace isolation & multi-tenant boundaries</span>
+                            </div>
+                            <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 shrink-0">
+                              Verified
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-[#9ca3af]">
+                            <span>Strict tenant_id checks enforced in all 14 routes</span>
+                            <span className="text-emerald-400/80">100% Pass</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Metric Status Footer */}
+                      <div className="flex items-center justify-between border-t border-white/[.06] pt-2 text-[10px] font-mono text-[#6b7280]">
+                        <span>Components: <strong className="text-[#d1d5db]">14</strong></span>
+                        <span>Dependencies: <strong className="text-[#d1d5db]">38</strong></span>
+                        <span>Health Score: <strong className="text-amber-400">92/100</strong></span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <Button type="submit" variant="primary" size="md" className="h-11 whitespace-nowrap">
-                  <span>Analyze Repository</span>
-                  <ArrowRight size={14} />
-                </Button>
-              </form>
-
-              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-mono text-[#6b7280]">
-                <span>Public & Private Repositories</span>
-                <span>•</span>
-                <span>Zero Installation Required</span>
-                <span>•</span>
-                <span>Deterministic AST Analysis</span>
               </div>
             </div>
           </div>
         </section>
 
         {/* CORE CAPABILITIES */}
-        <section className="border-b border-white/[.08] py-16 sm:py-20">
+        <section id="capabilities" className="border-b border-white/[.08] py-16 sm:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl">
               <span className="font-mono text-xs uppercase tracking-widest text-amber-400">Platform Features</span>
