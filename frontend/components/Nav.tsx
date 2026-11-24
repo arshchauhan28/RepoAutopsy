@@ -91,6 +91,7 @@ export function Nav() {
   }
 
   const isAnalyzeActive = pathname === '/analyze' || pathname.startsWith('/repositories')
+  const isFeaturesActive = pathname.startsWith('/features')
   const isDashboardActive = pathname.startsWith('/dashboard')
   const isWorkspacesActive = pathname.startsWith('/workspaces')
 
@@ -110,6 +111,17 @@ export function Nav() {
               }`}
             >
               Analyze
+            </Link>
+
+            <Link
+              href="/features/anatomy"
+              className={`rounded-md px-3 py-1.5 font-mono text-[11px] uppercase tracking-[.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+                isFeaturesActive
+                  ? 'text-white font-semibold bg-white/[.04]'
+                  : 'text-[#9ca3af] hover:text-white hover:bg-white/[.02]'
+              }`}
+            >
+              Features
             </Link>
 
             <Link
@@ -286,6 +298,18 @@ export function Nav() {
             }`}
           >
             <span>Analyze</span>
+            <ArrowUpRight size={14} className="opacity-70" />
+          </Link>
+          <Link
+            onClick={() => setOpen(false)}
+            href="/features/anatomy"
+            className={`flex min-h-[44px] items-center justify-between rounded-lg px-3 py-2.5 font-mono text-xs uppercase tracking-[.12em] transition-colors ${
+              isFeaturesActive
+                ? 'bg-amber-400/10 text-amber-300 font-semibold border border-amber-400/30'
+                : 'text-[#d1d5db] hover:bg-white/[.04] hover:text-white'
+            }`}
+          >
+            <span>Features</span>
             <ArrowUpRight size={14} className="opacity-70" />
           </Link>
           <Link

@@ -23,6 +23,7 @@ const capabilities = [
     title: 'Architecture & Dependencies',
     description:
       'Interactive visual graph of subsystem boundaries, package dependencies, imports, and circular cycles.',
+    href: '/features/anatomy',
   },
   {
     icon: ShieldCheck,
@@ -30,6 +31,7 @@ const capabilities = [
     title: 'Evidence-Backed Findings',
     description:
       'Static analysis and security heuristics identifying maintainability risks, anti-patterns, and contract violations.',
+    href: '/features/diagnostics',
   },
   {
     icon: FileText,
@@ -37,6 +39,7 @@ const capabilities = [
     title: 'Executive & Technical Case Reports',
     description:
       'Standardized technical documentation with structured summaries, diagnostic breakdowns, and remediation plans.',
+    href: '/analyze',
   },
   {
     icon: Code2,
@@ -44,6 +47,7 @@ const capabilities = [
     title: 'Codebase Knowledge Assessment',
     description:
       'Intelligent repository-specific technical assessments, component-focused evaluations, and team readiness tracking.',
+    href: '/features/codevitals',
   },
   {
     icon: GitPullRequest,
@@ -51,6 +55,7 @@ const capabilities = [
     title: 'Automated Pull Request Intelligence',
     description:
       'Change-impact analysis, regression detection, circular dependency checks, and targeted test recommendations.',
+    href: '/features/pr-autopsy',
   },
 ]
 
@@ -311,6 +316,14 @@ export default function Home() {
                         {cap.description}
                       </p>
                     </div>
+
+                    <Link
+                      href={cap.href}
+                      className="inline-flex items-center gap-1.5 font-mono text-xs text-amber-400 hover:text-amber-300 transition-colors pt-2"
+                    >
+                      <span>Explore {cap.badge}</span>
+                      <ArrowRight size={12} />
+                    </Link>
                   </div>
                 )
               })}
@@ -344,7 +357,7 @@ export default function Home() {
         </section>
 
         {/* BOTTOM CALL TO ACTION */}
-        <section className="py-16 sm:py-20">
+        <section className="py-16 sm:py-20 border-b border-white/[.08]">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="rounded-xl border border-white/[.12] bg-[#0c0f13] p-8 sm:p-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div>
@@ -368,6 +381,124 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* CRAWLABLE TECHNICAL SEO FOOTER */}
+        <footer className="py-12 sm:py-16 bg-[#08090b]">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              {/* BRAND COLUMN */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="grid h-7 w-7 place-items-center rounded-lg bg-white/[.04] border border-white/[.12]">
+                    <svg width="18" height="18" viewBox="0 0 64 64" fill="none">
+                      <path d="M15 18L7 32L15 46" stroke="#EAB308" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18 32H22L25 35L30 15L35 49L39 27L42 32H46" stroke="#EAB308" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M49 18L57 32L49 46" stroke="#EAB308" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <span className="font-mono text-sm font-bold tracking-wider text-white">
+                    REPO<span className="text-amber-400">AUTOPSY</span>
+                  </span>
+                </div>
+                <p className="text-xs text-[#9ca3af] leading-relaxed max-w-xs">
+                  Deterministic codebase intelligence and architectural diagnostics for GitHub repositories. Grounded in abstract syntax trees and dependency graphs.
+                </p>
+              </div>
+
+              {/* FEATURES COLUMN */}
+              <div className="space-y-3">
+                <div className="font-mono text-xs uppercase tracking-wider text-amber-400 font-semibold">
+                  Platform Features
+                </div>
+                <ul className="space-y-2 text-xs text-[#9ca3af]">
+                  <li>
+                    <Link href="/features/anatomy" className="hover:text-white transition-colors">
+                      Architecture Visualizer
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/features/diagnostics" className="hover:text-white transition-colors">
+                      Codebase Diagnostics
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/features/codevitals" className="hover:text-white transition-colors">
+                      CodeVitals Assessment
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/features/pr-autopsy" className="hover:text-white transition-colors">
+                      Pull Request Autopsy
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* PRODUCT & EXPLORATION */}
+              <div className="space-y-3">
+                <div className="font-mono text-xs uppercase tracking-wider text-amber-400 font-semibold">
+                  Tools & Workspaces
+                </div>
+                <ul className="space-y-2 text-xs text-[#9ca3af]">
+                  <li>
+                    <Link href="/analyze" className="hover:text-white transition-colors">
+                      Analyze a GitHub Repository
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/dashboard" className="hover:text-white transition-colors">
+                      Personal Dashboard
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/workspaces" className="hover:text-white transition-colors">
+                      Team Workspaces
+                    </Link>
+                  </li>
+                  <li>
+                    <a
+                      href="https://github.com/arshchauhan28/RepoAutopsy"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-white transition-colors inline-flex items-center gap-1"
+                    >
+                      <span>Open Source GitHub</span>
+                      <ArrowRight size={10} />
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              {/* METHODOLOGY & INTEGRITY */}
+              <div className="space-y-3">
+                <div className="font-mono text-xs uppercase tracking-wider text-amber-400 font-semibold">
+                  Engineering Integrity
+                </div>
+                <ul className="space-y-2 text-xs text-[#9ca3af]">
+                  <li>
+                    <span className="text-[#d1d5db]">Deterministic AST Heuristics</span>
+                  </li>
+                  <li>
+                    <span className="text-[#d1d5db]">2,500 File Safeguard Enforced</span>
+                  </li>
+                  <li>
+                    <span className="text-[#d1d5db]">Full Coverage Transparency</span>
+                  </li>
+                  <li>
+                    <span className="text-[#d1d5db]">Zero Hallucination Assessment</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-t border-white/[.08] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#6b7280]">
+              <p>© 2026 RepoAutopsy. All rights reserved.</p>
+              <p className="font-mono text-[11px]">
+                https://repoautopsy.vercel.app · Production SEO Verified
+              </p>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   )

@@ -5,8 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
-        disallow: ['/api/', '/dashboard', '/workspaces/'],
+        allow: ['/', '/analyze', '/features/'],
+        disallow: ['/api/', '/dashboard', '/workspaces/', '/auth/'],
       },
     ],
     sitemap: 'https://repoautopsy.vercel.app/sitemap.xml',
