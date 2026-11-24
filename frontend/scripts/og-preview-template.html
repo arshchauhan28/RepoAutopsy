@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  html, body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background-color: #08090B;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #FFFFFF;
+    -webkit-font-smoothing: antialiased;
+  }
+  .canvas {
+    position: relative;
+    width: 1200px;
+    height: 630px;
+    display: flex;
+    padding: 56px 60px;
+    background: radial-gradient(circle at 85% 15%, rgba(234, 179, 8, 0.08) 0%, transparent 60%),
+                radial-gradient(circle at 10% 90%, rgba(234, 179, 8, 0.05) 0%, transparent 50%),
+                #08090B;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Grid lines overlay */
+  .grid-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .left-col {
+    position: relative;
+    z-index: 2;
+    width: 530px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .brand-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    background: #08090B;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .wordmark {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #FFFFFF;
+  }
+
+  .wordmark span {
+    color: #EAB308;
+  }
+
+  .hero-text {
+    margin-top: -10px;
+  }
+
+  .badge-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: rgba(234, 179, 8, 0.10);
+    border: 1px solid rgba(234, 179, 8, 0.35);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #EAB308;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #EAB308;
+    box-shadow: 0 0 8px #EAB308;
+  }
+
+  .headline {
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #FFFFFF;
+    letter-spacing: -0.025em;
+    margin-bottom: 18px;
+  }
+
+  .subline {
+    font-size: 18px;
+    line-height: 1.5;
+    color: #9CA3AF;
+    font-weight: 400;
+    max-width: 470px;
+  }
+
+  .feature-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .pill {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    font-size: 13px;
+    color: #D1D5DB;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+  }
+
+  .pill-accent {
+    color: #EAB308;
+    font-weight: 600;
+  }
+
+  .bottom-meta {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+    color: #6B7280;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .bottom-meta span {
+    color: #9CA3AF;
+  }
+
+  /* Right column: Realistic Preview Card */
+  .right-col {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    margin-left: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .preview-wrapper {
+    position: relative;
+    background: #0D0F13;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8),
+                0 0 0 1px rgba(234, 179, 8, 0.12);
+  }
+
+  .preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+
+  .preview-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #EAB308;
+    font-weight: 700;
+    background: rgba(234, 179, 8, 0.12);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(234, 179, 8, 0.28);
+  }
+
+  .repo-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .repo-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .repo-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #9CA3AF;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Metric cards grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .m-card {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+
+  .m-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6B7280;
+    font-weight: 600;
+  }
+
+  .m-val {
+    font-size: 20px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-top: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .m-val-green {
+    color: #10B981;
+  }
+
+  .m-val-amber {
+    color: #EAB308;
+  }
+
+  /* Anatomy Subsystems Diagram */
+  .diagram-box {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+
+  .diagram-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    text-transform: uppercase;
+    color: #9CA3AF;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+
+  .diagram-status {
+    color: #10B981;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .nodes-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+  }
+
+  .node {
+    background: #141820;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 8px 12px;
+    text-align: center;
+    width: 105px;
+  }
+
+  .node.core {
+    border-color: rgba(234, 179, 8, 0.5);
+    background: rgba(234, 179, 8, 0.08);
+  }
+
+  .node-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #F3F4F6;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .node-sub {
+    font-size: 10px;
+    color: #6B7280;
+    margin-top: 2px;
+  }
+
+  .node-conn {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.6), rgba(255, 255, 255, 0.2));
+    margin: 0 6px;
+    position: relative;
+  }
+
+  .node-conn::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-top: 2px solid rgba(255, 255, 255, 0.4);
+    border-right: 2px solid rgba(255, 255, 255, 0.4);
+    transform: rotate(45deg);
+  }
+
+  /* Diagnostics & Coverage bar */
+  .coverage-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .cov-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #D1D5DB;
+  }
+
+  .cov-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10B981;
+  }
+
+  .cov-badge {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    color: #10B981;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="grid-pattern"></div>
+
+  <!-- LEFT COLUMN -->
+  <div class="left-col">
+    <!-- Brand row -->
+    <div class="brand-row">
+      <div class="logo-box">
+        <!-- Code Pulse SVG Logo -->
+        <svg width="28" height="28" viewBox="0 0 64 64" fill="none">
+          <path d="M15 18L7 32L15 46" stroke="#EAB308" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18 32H22L25 35L30 15L35 49L39 27L42 32H46" stroke="#EAB308" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M49 18L57 32L49 46" stroke="#EAB308" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="wordmark">REPO<span>AUTOPSY</span></div>
+    </div>
+
+    <!-- Main headline & text -->
+    <div class="hero-text">
+      <div class="badge-label">
+        <span class="pulse-dot"></span>
+        Codebase Intelligence
+      </div>
+      <h1 class="headline">
+        Understand any<br>GitHub repository.
+      </h1>
+      <p class="subline">
+        Explore architecture. Detect issues. Test your understanding with CodeVitals.
+      </p>
+
+      <div class="feature-pills">
+        <div class="pill"><span class="pill-accent">✓</span> Anatomy & AST</div>
+        <div class="pill"><span class="pill-accent">⚠</span> Diagnostics</div>
+        <div class="pill"><span class="pill-accent">✦</span> CodeVitals</div>
+        <div class="pill"><span class="pill-accent">⇄</span> PR Autopsy</div>
+      </div>
+    </div>
+
+    <!-- Bottom URL & verified tag -->
+    <div class="bottom-meta">
+      <span>repoautopsy.vercel.app</span>
+      <div>·</div>
+      <div>Deterministic AST Analysis</div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: Realistic Sample Report Preview -->
+  <div class="right-col">
+    <div class="preview-wrapper">
+      <!-- Header with EXAMPLE REPORT -->
+      <div class="preview-header">
+        <div class="repo-title-row">
+          <span class="repo-name">encode/starlette</span>
+          <span class="repo-tag">ASGI Core</span>
+        </div>
+        <div class="preview-badge">
+          Example Report
+        </div>
+      </div>
+
+      <!-- Metrics grid -->
+      <div class="metrics-grid">
+        <div class="m-card">
+          <div class="m-label">Files Parsed</div>
+          <div class="m-val">84 <span style="font-size: 13px; color: #9CA3AF; font-weight: normal;">/ 84</span></div>
+        </div>
+        <div class="m-card">
+          <div class="m-label">Diagnostics</div>
+          <div class="m-val m-val-amber">12 <span style="font-size: 12px; color: #9CA3AF; font-weight: normal;">rules</span></div>
+        </div>
+        <div class="m-card">
+          <div class="m-label">AST Scope</div>
+          <div class="m-val m-val-green">100%</div>
+        </div>
+      </div>
+
+      <!-- Anatomy Subsystems Diagram -->
+      <div class="diagram-box">
+        <div class="diagram-title">
+          <span>Subsystem Architecture Graph</span>
+          <span class="diagram-status">● Verified</span>
+        </div>
+        <div class="nodes-row">
+          <div class="node core">
+            <div class="node-name">routing</div>
+            <div class="node-sub">Router & Dispatch</div>
+          </div>
+          <div class="node-conn"></div>
+          <div class="node">
+            <div class="node-name">middleware</div>
+            <div class="node-sub">Pipeline Stack</div>
+          </div>
+          <div class="node-conn"></div>
+          <div class="node">
+            <div class="node-name">responses</div>
+            <div class="node-sub">HTTP & WS Streams</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coverage Bar -->
+      <div class="coverage-bar">
+        <div class="cov-left">
+          <div class="cov-dot"></div>
+          <span>Analysis Coverage & Evidence</span>
+        </div>
+        <div class="cov-badge">100% AST Verified</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
