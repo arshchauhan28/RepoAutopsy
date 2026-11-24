@@ -1,7 +1,7 @@
 import logging
 from sqlalchemy import inspect, text
 from app.db.session import Base, engine
-from app.models import analysis, finding, interview, pull_request
+from app.models import analysis, finding, interview, pull_request, user, workspace, automation
 
 logger = logging.getLogger(__name__)
 

@@ -49,6 +49,21 @@ class OAuthState(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class AuthHandoff(Base):
+    """
+    Short-lived (60s), single-use cryptographic handoff code to transfer
+    session identity securely to a decoupled frontend BFF without exposing
+    raw session tokens in browser URLs.
+    """
+    __tablename__ = "auth_handoffs"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # SHA-256 hash of handoff code
+    session_token: Mapped[str] = mapped_column(String(255))
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class GitHubConnection(Base):
     __tablename__ = "github_connections"
 

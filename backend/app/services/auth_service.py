@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import httpx
 from sqlalchemy.orm import Session
 from app.core.config import settings
-from app.models.user import User, UserSession, OAuthState, GitHubConnection
+from app.models.user import User, UserSession, OAuthState, GitHubConnection, AuthHandoff
 from app.models.workspace import Workspace, WorkspaceMember
 
 logger = logging.getLogger(__name__)
@@ -46,6 +46,50 @@ def validate_and_consume_oauth_state(db: Session, state_token: str) -> OAuthStat
     db.delete(state)
     db.commit()
     return state
+
+
+def create_auth_handoff(db: Session, session_token: str, user_id: str) -> str:
+    """
+    Creates a single-use, cryptographically secure 60-second handoff token
+    to safely transfer session identity to a decoupled frontend BFF without
+    exposing raw session tokens in browser URLs.
+    """
+    code = generate_secure_token(32)
+    code_hash = hash_token(code)
+    handoff = AuthHandoff(
+        id=code_hash,
+        session_token=session_token,
+        user_id=user_id,
+        expires_at=datetime.utcnow() + timedelta(seconds=60),
+        created_at=datetime.utcnow(),
+    )
+    db.add(handoff)
+    db.commit()
+    return code
+
+
+def validate_and_consume_auth_handoff(db: Session, code: str) -> tuple[str, User] | None:
+    """
+    Atomically validates and deletes a single-use handoff code.
+    Prevents replay attacks and returns (session_token, user).
+    """
+    code_hash = hash_token(code)
+    handoff = db.query(AuthHandoff).filter(AuthHandoff.id == code_hash).first()
+    if not handoff:
+        return None
+    if handoff.expires_at < datetime.utcnow():
+        db.delete(handoff)
+        db.commit()
+        return None
+
+    session_token = handoff.session_token
+    user = db.query(User).filter(User.id == handoff.user_id).first()
+    db.delete(handoff)  # Single-use: consumed immediately
+    db.commit()
+
+    if not user:
+        return None
+    return session_token, user
 
 
 def build_github_login_url(state: str, redirect_uri: str | None = None) -> str:

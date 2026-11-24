@@ -22,8 +22,18 @@ function AuthCallbackContent() {
       return
     }
 
+    // 2. Check for handoff code from backend
     const code = searchParams.get('code')
     const state = searchParams.get('state')
+    const handoffCode = searchParams.get('handoff')
+
+    // If this is a direct handoff code from backend redirect (no state parameter)
+    if (handoffCode || (!state && code)) {
+      const codeToExchange = handoffCode || code
+      const returnTo = searchParams.get('return_to') || '/dashboard'
+      window.location.replace(`/api/auth/handoff?code=${encodeURIComponent(codeToExchange!)}&return_to=${encodeURIComponent(returnTo)}`)
+      return
+    }
 
     if (!code || !state) {
       setError('Missing OAuth authentication parameters (code or state). Please try signing in again.')

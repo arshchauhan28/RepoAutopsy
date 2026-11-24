@@ -30,3 +30,12 @@ class LoginUrlResponse(BaseModel):
 class OAuthCallbackRequest(BaseModel):
     code: str
     state: str
+
+
+class HandoffExchangeRequest(BaseModel):
+    handoff_code: str
+
+
+class HandoffExchangeResponse(BaseModel):
+    session_token: str
+    user: UserResponse

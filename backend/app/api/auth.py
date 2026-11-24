@@ -7,10 +7,19 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import UserResponse, SessionResponse, LoginUrlResponse, OAuthCallbackRequest
+from app.schemas.auth import (
+    UserResponse,
+    SessionResponse,
+    LoginUrlResponse,
+    OAuthCallbackRequest,
+    HandoffExchangeRequest,
+    HandoffExchangeResponse,
+)
 from app.services.auth_service import (
     create_oauth_state,
     validate_and_consume_oauth_state,
+    create_auth_handoff,
+    validate_and_consume_auth_handoff,
     build_github_login_url,
     exchange_github_code,
     fetch_github_user_profile,
@@ -164,6 +173,9 @@ async def github_callback_redirect(
     user_agent = request.headers.get("User-Agent")
     session, raw_token = create_user_session(db, user, user_agent=user_agent, ip_address=client_ip)
 
+    # 5b. Generate short-lived, single-use authentication handoff code for BFF
+    handoff_code = create_auth_handoff(db, raw_token, user.id)
+
     # Determine frontend redirect target
     target_path = state_record.redirect_url or "/dashboard"
     if not target_path.startswith("/"):
@@ -171,7 +183,8 @@ async def github_callback_redirect(
     if target_path.startswith("//") or "://" in target_path:
         target_path = "/dashboard"
 
-    redirect_url = f"{frontend_base}{target_path}"
+    # Route browser through the Vercel BFF handoff endpoint so first-party session cookie is set on Vercel domain
+    redirect_url = f"{frontend_base}/api/auth/handoff?code={urllib.parse.quote(handoff_code)}&return_to={urllib.parse.quote(target_path)}"
     resp = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
     # 6. Set HTTP-only, SameSite cookie
@@ -188,6 +201,43 @@ async def github_callback_redirect(
     # Clear state cookie
     resp.delete_cookie("repoautopsy_oauth_state", path="/")
     return resp
+
+
+@router.post("/handoff/exchange", response_model=HandoffExchangeResponse)
+def exchange_handoff(
+    payload: HandoffExchangeRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    """
+    Exchanges a single-use, 60-second handoff code for verified user session credentials.
+    Called server-side by the Next.js BFF to establish a first-party session cookie on the Vercel origin.
+    """
+    result = validate_and_consume_auth_handoff(db, payload.handoff_code)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid, expired, or already used handoff code.",
+        )
+    session_token, user = result
+
+    # Also set cookie on Render domain as fallback
+    is_secure = settings.environment != "development" and not settings.frontend_url.startswith("http://localhost")
+    response.set_cookie(
+        key=settings.session_cookie_name,
+        value=session_token,
+        max_age=settings.session_expire_days * 86400,
+        expires=settings.session_expire_days * 86400,
+        httponly=True,
+        secure=is_secure,
+        samesite="none" if is_secure else "lax",
+        path="/",
+    )
+
+    return HandoffExchangeResponse(
+        session_token=session_token,
+        user=UserResponse.model_validate(user),
+    )
 
 
 @router.post("/callback", response_model=SessionResponse)

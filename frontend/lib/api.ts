@@ -365,8 +365,9 @@ export type TeamInviteInfo = {
 }
 
 export const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' ? '' : 'http://localhost:8000')
+  typeof window !== 'undefined'
+    ? ''
+    : (process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
 ).replace(/\/$/, '')
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
