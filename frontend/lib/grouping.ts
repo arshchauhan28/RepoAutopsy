@@ -9,6 +9,8 @@ export type GroupedOccurrence = {
   rule_id?: string | null
   evidence_type?: string | null
   confidence_classification?: string | null
+  when_intentional?: string | null
+  detection_method?: string | null
 }
 
 export type GroupedIssue = {
@@ -21,6 +23,8 @@ export type GroupedIssue = {
   why_it_matters: string
   suggested_fix: string
   root_cause_group: string
+  when_intentional?: string | null
+  detection_method?: string | null
   occurrences: GroupedOccurrence[]
   occurrenceCount: number
 }
@@ -97,6 +101,8 @@ export function groupFindings(findings: Finding[]): {
         why_it_matters: f.why_it_matters || f.description || 'Static analysis pattern detected in source code.',
         suggested_fix: f.suggested_fix || f.recommendation || 'Refactor the flagged pattern following defensive coding best practices.',
         root_cause_group: f.root_cause_group || 'general',
+        when_intentional: f.when_intentional || null,
+        detection_method: f.detection_method || (f.evidence_type?.includes('ast') ? 'AST-Confirmed Pattern' : 'Heuristic Detection'),
         occurrences: [],
         occurrenceCount: 0,
       }
@@ -134,6 +140,8 @@ export function groupFindings(findings: Finding[]): {
       rule_id: f.rule_id || null,
       evidence_type: f.evidence_type || null,
       confidence_classification: f.confidence_classification || null,
+      when_intentional: f.when_intentional || null,
+      detection_method: f.detection_method || null,
     })
     group.occurrenceCount = group.occurrences.length
   })

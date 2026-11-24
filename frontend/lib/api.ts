@@ -14,6 +14,8 @@ export type Finding = {
   root_cause_group?: string | null
   rule_id?: string
   evidence_type?: string
+  when_intentional?: string | null
+  detection_method?: string | null
   confidence_classification?: string
   source_reference?: {
     file_path: string

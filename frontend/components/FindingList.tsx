@@ -18,9 +18,11 @@ import {
   ArrowRight,
   Layers,
   Link as LinkIcon,
+  HelpCircle,
 } from 'lucide-react'
 import type { Finding, Recommendation, ArchitectureData } from '@/lib/api'
 import { groupFindings, type GroupedIssue, type DiagnosticCounts } from '@/lib/grouping'
+import { Select } from '@/components/ui/Select'
 
 interface CodebaseDoctorProps {
   findings: Finding[]
@@ -429,13 +431,14 @@ export function FindingList({
               <span className="px-2 font-mono text-[10px] uppercase text-[#77736c]">Severity:</span>
               <button
                 onClick={() => setSeverityFilter('high_priority')}
+                title="Priority findings: Critical, High, and Medium severity issues"
                 className={`rounded px-2.5 py-1 text-xs transition ${
                   severityFilter === 'high_priority'
                     ? 'bg-amber-400 font-semibold text-black'
                     : 'text-[#aaa69e] hover:bg-white/[.05]'
                 }`}
               >
-                All High Priority ({counts.distinct.totalHighPriority})
+                Priority Findings ({counts.distinct.totalHighPriority})
               </button>
               <button
                 onClick={() => setSeverityFilter('critical')}
@@ -482,19 +485,22 @@ export function FindingList({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 font-mono text-[10px] uppercase text-[#77736c]">Category:</span>
-              <select
+            <div className="flex items-center gap-1.5 min-w-[170px]">
+              <span className="font-mono text-[10px] uppercase text-[#77736c] shrink-0">Category:</span>
+              <Select
                 value={categoryFilter}
-                onChange={e => setCategoryFilter(e.target.value)}
-                className="rounded border border-white/[.1] bg-black/40 px-2 py-1 text-xs text-[#c8c4bc] focus:border-amber-400 focus:outline-none"
-              >
-                <option value="all">All Categories</option>
-                <option value="security">Security</option>
-                <option value="reliability">Reliability</option>
-                <option value="correctness">Correctness</option>
-                <option value="maintainability">Maintainability</option>
-              </select>
+                onChange={setCategoryFilter}
+                accentColor="amber"
+                ariaLabel="Filter findings by category"
+                className="min-w-[145px]"
+                options={[
+                  { value: 'all', label: 'All Categories' },
+                  { value: 'security', label: 'Security' },
+                  { value: 'reliability', label: 'Reliability' },
+                  { value: 'correctness', label: 'Correctness' },
+                  { value: 'maintainability', label: 'Maintainability' },
+                ]}
+              />
             </div>
           </div>
 
@@ -591,19 +597,16 @@ export function FindingList({
                           )}
                           <h3 className="text-sm font-semibold text-white">{group.title}</h3>
                           {getSeverityBadge(group.severity)}
-                          <span className="rounded border border-emerald-500/20 bg-emerald-500/5 px-1.5 py-0.2 font-mono text-[9px] uppercase text-emerald-400">
-                            {primaryOcc?.confidence_classification || group.confidence} Conf.
+                          <span className="rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-emerald-300">
+                            {group.detection_method || (primaryOcc?.evidence_type?.includes('ast') ? 'AST-Confirmed Pattern' : 'Heuristic Detection')}
                           </span>
-                          {primaryOcc?.evidence_type && (
-                            <span className="rounded border border-blue-500/20 bg-blue-500/5 px-1.5 py-0.2 font-mono text-[9px] uppercase text-blue-300">
-                              {primaryOcc.evidence_type.replace('_', ' ')}
+                          {(primaryOcc?.confidence_classification === 'review_recommended' || group.confidence === 'review_recommended') && (
+                            <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-amber-300">
+                              Review Recommended
                             </span>
                           )}
-                          <span className="rounded border border-white/[.08] bg-white/[.03] px-1.5 py-0.2 font-mono text-[9px] uppercase text-[#77736c]">
-                            {group.category}
-                          </span>
                           {group.occurrenceCount > 1 && (
-                            <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.2 font-mono text-[10px] font-semibold text-amber-300">
+                            <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-amber-300">
                               {group.occurrenceCount} occurrences
                             </span>
                           )}
@@ -677,11 +680,23 @@ export function FindingList({
                           </div>
                         )}
 
-                        {/* How to fix it */}
+                        {/* When might it be intentional? */}
+                        {(group.when_intentional || primaryOcc?.when_intentional) && (
+                          <div className="rounded border border-amber-400/20 bg-amber-400/[.03] p-3">
+                            <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-amber-300 font-semibold">
+                              <HelpCircle size={13} /> When might this be intentional?
+                            </div>
+                            <p className="mt-1 text-xs leading-5 text-[#dcd8d0]">
+                              {group.when_intentional || primaryOcc?.when_intentional}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Suggested Review & Remediation */}
                         {group.suggested_fix && (
                           <div className="rounded border border-emerald-500/20 bg-emerald-500/[.03] p-3">
-                            <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-emerald-400">
-                              <CheckCircle2 size={13} /> How to fix it
+                            <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">
+                              <CheckCircle2 size={13} /> Suggested Review & Remediation
                             </div>
                             <p className="mt-1 text-xs leading-5 text-[#d0ede0]">{group.suggested_fix}</p>
                           </div>

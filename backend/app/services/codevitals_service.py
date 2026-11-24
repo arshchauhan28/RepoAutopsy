@@ -214,13 +214,12 @@ def validate_question(
 
         # Contradictory answer key / explanation validation
         explanation = (q.get("explanation") or "").strip().lower()
-        if not explanation:
-            return False
-        # If explanation explicitly states another option index is correct, reject
-        for opt_idx in range(4):
-            if opt_idx != correct:
-                if f"option {opt_idx} is correct" in explanation or f"option {opt_idx} is the correct" in explanation:
-                    return False
+        if explanation:
+            # If explanation explicitly states another option index is correct, reject
+            for opt_idx in range(4):
+                if opt_idx != correct:
+                    if f"option {opt_idx} is correct" in explanation or f"option {opt_idx} is the correct" in explanation:
+                        return False
 
     # Validate that claimed relevant files exist in repository
     files = q.get("relevant_files") or []

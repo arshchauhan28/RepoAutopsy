@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { Analysis, AssessableComponent } from '@/lib/api'
 import { getAssessableComponents, createTeamSession } from '@/lib/api'
+import { Select } from '@/components/ui/Select'
 
 interface TeamSessionCreateProps {
   analysis: Analysis | null
@@ -356,18 +357,20 @@ export function TeamSessionCreate({ analysis, onBack, onCreated }: TeamSessionCr
                 <span className="font-mono text-[9px] uppercase text-[#77736c] block mb-1">
                   Assigned Scope
                 </span>
-                <select
+                <Select
                   value={m.assigned_components[0] || 'complete'}
-                  onChange={e => updateMember(m.id, 'assigned_components', [e.target.value])}
-                  className="w-full rounded border border-white/[.1] bg-black/40 px-2 py-1 text-xs text-[#c8c4bc] focus:border-purple-400 focus:outline-none"
-                >
-                  <option value="complete">Complete Codebase</option>
-                  {components.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.file_count} files)
-                    </option>
-                  ))}
-                </select>
+                  onChange={val => updateMember(m.id, 'assigned_components', [val])}
+                  accentColor="purple"
+                  ariaLabel={`Assigned Scope for ${m.display_name}`}
+                  options={[
+                    { value: 'complete', label: 'Complete Codebase' },
+                    ...components.map(c => ({
+                      value: c.id,
+                      label: c.name,
+                      badge: `${c.file_count} files`,
+                    })),
+                  ]}
+                />
               </div>
 
               <div className="flex items-center justify-between gap-2">
@@ -375,15 +378,17 @@ export function TeamSessionCreate({ analysis, onBack, onCreated }: TeamSessionCr
                   <span className="font-mono text-[9px] uppercase text-[#77736c] block mb-1">
                     Difficulty
                   </span>
-                  <select
+                  <Select
                     value={m.difficulty}
-                    onChange={e => updateMember(m.id, 'difficulty', e.target.value)}
-                    className="w-full rounded border border-white/[.1] bg-black/40 px-2 py-1 text-xs text-[#c8c4bc] focus:border-purple-400 focus:outline-none capitalize"
-                  >
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
+                    onChange={val => updateMember(m.id, 'difficulty', val as 'beginner' | 'intermediate' | 'advanced')}
+                    accentColor="purple"
+                    ariaLabel={`Difficulty for ${m.display_name}`}
+                    options={[
+                      { value: 'beginner', label: 'Beginner' },
+                      { value: 'intermediate', label: 'Intermediate' },
+                      { value: 'advanced', label: 'Advanced' },
+                    ]}
+                  />
                 </div>
 
                 {members.length > 1 && (

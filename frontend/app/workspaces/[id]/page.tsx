@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/Input'
 import { Dialog } from '@/components/ui/Dialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { CardSkeleton } from '@/components/ui/Skeleton'
+import { Select } from '@/components/ui/Select'
 import { ErrorState } from '@/components/ui/ErrorState'
 import {
   getWorkspace,
@@ -473,15 +474,18 @@ export default function WorkspaceDetailPage() {
 
                       <td className="px-4 py-3.5 font-mono">
                         {canManage && m.role !== 'owner' ? (
-                          <select
-                            value={m.role}
-                            onChange={(e) => handleChangeRole(m.user_id, e.target.value)}
-                            className="rounded border border-white/[.12] bg-[#0c0f13] px-2 py-1 text-[11px] text-white focus:outline-none"
-                          >
-                            <option value="admin">admin</option>
-                            <option value="member">member</option>
-                            <option value="viewer">viewer</option>
-                          </select>
+                          <div className="w-28">
+                            <Select
+                              value={m.role}
+                              onChange={(val) => handleChangeRole(m.user_id, val)}
+                              accentColor="amber"
+                              options={[
+                                { value: 'admin', label: 'admin' },
+                                { value: 'member', label: 'member' },
+                                { value: 'viewer', label: 'viewer' },
+                              ]}
+                            />
+                          </div>
                         ) : (
                           <span className="rounded bg-white/[.06] px-2 py-0.5 text-[10px] uppercase font-bold text-[#aaa69e]">
                             {m.role}
@@ -677,15 +681,16 @@ export default function WorkspaceDetailPage() {
             <form onSubmit={handleCreateInvite} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-[#d1d5db] mb-1.5">Role</label>
-                <select
+                <Select
                   value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                  className="w-full rounded-md border border-white/[.12] bg-[#0c0f13] px-3.5 py-2 text-xs text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                >
-                  <option value="member">member (view repos, run analyses, take CodeVitals)</option>
-                  <option value="admin">admin (manage repos, invite members, configure automation)</option>
-                  <option value="viewer">viewer (read-only access)</option>
-                </select>
+                  onChange={(val) => setInviteRole(val)}
+                  accentColor="amber"
+                  options={[
+                    { value: 'member', label: 'member', description: 'View repos, run analyses, take CodeVitals' },
+                    { value: 'admin', label: 'admin', description: 'Manage repos, invite members, configure automation' },
+                    { value: 'viewer', label: 'viewer', description: 'Read-only access' },
+                  ]}
+                />
               </div>
 
               <Input

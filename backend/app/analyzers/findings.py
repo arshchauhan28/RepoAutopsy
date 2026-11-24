@@ -207,6 +207,8 @@ class PythonAstSecurityVisitor(ast.NodeVisitor):
         self.file_path = file_path
         self.lines = lines
         self.findings: list[dict] = []
+        self.current_function: str = ""
+        self.loop_depth: int = 0
 
     def _get_line_snippet(self, lineno: int) -> str:
         if 1 <= lineno <= len(self.lines):
@@ -386,6 +388,8 @@ class PythonAstSecurityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
+        prev_func = self.current_function
+        self.current_function = node.name
         # Mutable default arguments (CORR-001)
         for default in node.args.defaults:
             if isinstance(default, (ast.List, ast.Dict, ast.Set)):
@@ -395,8 +399,10 @@ class PythonAstSecurityVisitor(ast.NodeVisitor):
                     "rule_id": "CORR-001",
                     "category": "correctness",
                     "severity": "high",
-                    "confidence": "verified",
-                    "evidence_type": "ast_verified",
+                    "confidence": "review_recommended",
+                    "confidence_classification": "review_recommended",
+                    "evidence_type": "ast_confirmed_pattern",
+                    "detection_method": "AST-Confirmed Pattern",
                     "title": f"Mutable Default Argument ({type_name}) in Function Definition",
                     "description": f"Function '{node.name}' in {self.file_path} at line {node.lineno} specifies a mutable {type_name} as a default argument.",
                     "file_path": self.file_path,
@@ -405,6 +411,7 @@ class PythonAstSecurityVisitor(ast.NodeVisitor):
                     "evidence": self._get_line_snippet(node.lineno),
                     "suggested_fix": f"Set default to None and initialize inside the function: def {node.name}(..., arg=None): if arg is None: arg = []",
                     "recommendation": f"Use None sentinel pattern for function '{node.name}' instead of mutable default.",
+                    "when_intentional": "Occasionally used as an intentional memoization accumulator, but using a None sentinel is standard and safer.",
                     "root_cause_group": "mutable-default-arg",
                     "source_reference": {
                         "file_path": self.file_path,
@@ -415,6 +422,28 @@ class PythonAstSecurityVisitor(ast.NodeVisitor):
                     },
                 })
         self.generic_visit(node)
+        self.current_function = prev_func
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        prev_func = self.current_function
+        self.current_function = node.name
+        self.generic_visit(node)
+        self.current_function = prev_func
+
+    def visit_For(self, node: ast.For):
+        self.loop_depth += 1
+        self.generic_visit(node)
+        self.loop_depth -= 1
+
+    def visit_AsyncFor(self, node: ast.AsyncFor):
+        self.loop_depth += 1
+        self.generic_visit(node)
+        self.loop_depth -= 1
+
+    def visit_While(self, node: ast.While):
+        self.loop_depth += 1
+        self.generic_visit(node)
+        self.loop_depth -= 1
 
     def visit_ExceptHandler(self, node: ast.ExceptHandler):
         # Silent exception swallowing (REL-002)
@@ -427,28 +456,74 @@ class PythonAstSecurityVisitor(ast.NodeVisitor):
                 is_silent = True
 
             if is_silent:
-                exc_type = "bare 'except:'" if node.type is None else f"'except {ast.unparse(node.type)}:'"
+                is_broad = False
+                exc_name = ""
+                if node.type is None:
+                    is_broad = True
+                    exc_name = "bare except"
+                    exc_display = "bare 'except:'"
+                elif isinstance(node.type, ast.Name):
+                    exc_name = node.type.id
+                    exc_display = f"'except {node.type.id}:'"
+                    if node.type.id in {"Exception", "BaseException"}:
+                        is_broad = True
+                elif isinstance(node.type, ast.Tuple):
+                    names = [ast.unparse(elt) for elt in node.type.elts]
+                    is_broad = any(n in {"Exception", "BaseException"} for n in names)
+                    exc_name = ", ".join(names)
+                    exc_display = f"'except ({exc_name}):'"
+                else:
+                    exc_name = ast.unparse(node.type)
+                    exc_display = f"'except {exc_name}:'"
+                    if exc_name in {"Exception", "BaseException"}:
+                        is_broad = True
+
+                is_critical_func = any(k in self.current_function.lower() for k in ("transaction", "commit", "payment", "payout", "transfer", "authenticate", "authorize", "grant_token"))
+                in_loop = self.loop_depth > 0
+
+                if is_broad:
+                    severity = "high" if is_critical_func else "medium"
+                    title = "Broad Silent Exception Swallowing (Blank pass)"
+                    why = (
+                        f"In a critical or security-sensitive function ('{self.current_function}'), catching broad exceptions silently without re-raising can conceal critical failures or rollback states, leaving system state inconsistent."
+                        if is_critical_func
+                        else "A broad catch block ('except Exception:' or bare 'except:') intercepts all runtime errors including syntax/type errors, network timeouts, and programming bugs. Suppressing it without inspection makes debugging difficult and conceals unexpected failures."
+                    )
+                    fix = "Catch specific expected exception types instead of broad Exception. If the exception must be suppressed, log diagnostic details using logger.warning() or logger.exception()."
+                    when = "Broad suppression is rarely recommended outside top-level daemon loops or safety wrappers where crashing the host process must be prevented."
+                    root_cause = "broad-silent-exception"
+                else:
+                    severity = "low"
+                    title = f"Silent Exception Suppression ({exc_name})"
+                    why = f"Catching {exc_display} and suppressing with blank pass discards the error. While common for fallback probing or optional lookup, it can obscure underlying issues if assumptions change."
+                    fix = f"Verify that swallowing {exc_name} is deliberate. If this represents expected fallback or optional lookup, consider using contextlib.suppress({exc_name}) or adding an inline comment to clarify developer intent."
+                    when = f"Catching {exc_name} and passing is commonly intentional for optional dictionary key access, checking file existence, graceful generator termination, or iterating through fallback candidates."
+                    root_cause = "narrow-silent-exception"
+
                 self.findings.append({
-                    "id": make_finding_fingerprint("REL-002", self.file_path, f"{node.lineno}:silent-except"),
+                    "id": make_finding_fingerprint("REL-002", self.file_path, f"{node.lineno}:{root_cause}"),
                     "rule_id": "REL-002",
                     "category": "reliability",
-                    "severity": "medium",
-                    "confidence": "verified",
-                    "evidence_type": "ast_verified",
-                    "title": "Silent Exception Swallowing (Blank pass)",
-                    "description": f"Unhandled exception block with {exc_type} silently suppressed in {self.file_path} at line {node.lineno}.",
+                    "severity": severity,
+                    "confidence": "review_recommended",
+                    "confidence_classification": "review_recommended",
+                    "evidence_type": "ast_confirmed_pattern",
+                    "detection_method": "AST-Confirmed Pattern",
+                    "title": title,
+                    "description": f"Unhandled exception block with {exc_display} silently suppressed with blank pass in {self.file_path} at line {node.lineno}.",
                     "file_path": self.file_path,
                     "line": node.lineno,
-                    "why_it_matters": "Silently swallowing exceptions masks critical runtime bugs, database connection failures, and programming errors, making debugging difficult.",
+                    "why_it_matters": why,
                     "evidence": self._get_line_snippet(node.lineno),
-                    "suggested_fix": "Log the exception with details (e.g. logger.exception) or handle specific known exception classes.",
-                    "recommendation": "Log caught exceptions or handle specific exception classes with appropriate fallback.",
-                    "root_cause_group": "silent-exception",
+                    "suggested_fix": fix,
+                    "recommendation": fix,
+                    "when_intentional": when,
+                    "root_cause_group": root_cause,
                     "source_reference": {
                         "file_path": self.file_path,
                         "start_line": node.lineno,
                         "end_line": getattr(node, "end_lineno", node.lineno),
-                        "symbol": "except",
+                        "symbol": exc_name,
                         "evidence_type": "ast_except",
                     },
                 })
@@ -654,10 +729,12 @@ def deduplicate_and_group(findings: list[dict]) -> list[dict]:
         f.setdefault("id", make_finding_fingerprint(f.get("rule_id", "GEN-001"), f.get("file_path"), str(f.get("line"))))
         f.setdefault("confidence", "verified")
         f.setdefault("evidence_type", "ast_verified")
+        f.setdefault("detection_method", "AST-Confirmed Pattern" if "ast" in f.get("evidence_type", "") else "Heuristic Detection")
         f.setdefault("why_it_matters", "Potential defect or security risk detected by static code analysis.")
         f.setdefault("evidence", "")
         f.setdefault("suggested_fix", "Review the flagged code and apply defensive programming practices.")
         f.setdefault("recommendation", f.get("suggested_fix", ""))
+        f.setdefault("when_intentional", "")
         f.setdefault("root_cause_group", "general")
         result.append(f)
     return result

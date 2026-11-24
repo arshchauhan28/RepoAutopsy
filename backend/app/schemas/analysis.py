@@ -22,6 +22,8 @@ class FindingOut(BaseModel):
     root_cause_group: str | None = "general"
     rule_id: str | None = None
     evidence_type: str | None = None
+    when_intentional: str | None = None
+    detection_method: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
