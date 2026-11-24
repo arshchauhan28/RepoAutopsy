@@ -19,6 +19,24 @@ from app.services.codevitals_service import (
 logger = logging.getLogger(__name__)
 
 
+class InsufficientQuestionsError(Exception):
+    def __init__(
+        self,
+        requested_count: int,
+        available_count: int,
+        questions: list[dict[str, Any]],
+        message: str | None = None,
+    ):
+        self.requested_count = requested_count
+        self.available_count = available_count
+        self.questions = questions
+        self.message = message or (
+            f"Only {available_count} verified repository-grounded questions could be generated "
+            f"with sufficient evidence for the selected scope (requested {requested_count})."
+        )
+        super().__init__(self.message)
+
+
 def context_for_analysis(analysis: Analysis) -> dict[str, Any]:
     return {
         "repository": {"owner": analysis.owner, "name": analysis.repo_name, "summary": analysis.summary},
@@ -48,9 +66,12 @@ def start_interview(
     team_member_id: str | None = None,
     mode: str = "assessment",
     parent_session_id: str | None = None,
+    allow_shorter: bool = False,
 ) -> InterviewSession:
     """
     Initializes a CodeVitals assessment session with evidence-grounded questions.
+    Raises InsufficientQuestionsError if generated question count is less than requested count
+    and allow_shorter is False.
     """
     questions = generate_assessment_questions(
         analysis=analysis,
@@ -60,7 +81,20 @@ def start_interview(
         target_count=count,
         hackathon_mode=hackathon_mode,
         hackathon_context=hackathon_context,
+        allow_shorter=allow_shorter,
     )
+
+    if len(questions) < count and not allow_shorter:
+        logger.warning(
+            "Undergeneration detected: requested %d, generated %d. allow_shorter is False.",
+            count,
+            len(questions),
+        )
+        raise InsufficientQuestionsError(
+            requested_count=count,
+            available_count=len(questions),
+            questions=questions,
+        )
 
     session_token = secrets.token_urlsafe(32)
 
@@ -74,6 +108,7 @@ def start_interview(
         selected_components=selected_components,
         difficulty=difficulty,
         question_count=len(questions),
+        requested_question_count=count,
         evaluation_mode="deterministic",
         participant_name=participant_name,
         team_session_id=team_session_id,

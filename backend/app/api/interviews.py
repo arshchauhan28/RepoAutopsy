@@ -22,7 +22,7 @@ from app.schemas.interview import (
     JoinTeamRequest,
     JoinTeamResponse,
 )
-from app.services.interview_service import start_interview, answer_current, submit_batch_answers
+from app.services.interview_service import start_interview, answer_current, submit_batch_answers, InsufficientQuestionsError
 from app.services.codevitals_service import (
     get_assessable_components,
     build_repository_knowledge_model,
@@ -89,20 +89,38 @@ def create_interview(
         raise HTTPException(status_code=409, detail="Analysis must be completed before starting an assessment.")
     check_resource_access(analysis.workspace_id, user, db, min_role="member")
 
-    return start_interview(
-        db=db,
-        analysis=analysis,
-        count=payload.question_count,
-        assessment_type=payload.assessment_type,
-        scope_type=payload.scope_type,
-        selected_components=payload.selected_components,
-        difficulty=payload.difficulty,
-        hackathon_mode=payload.hackathon_mode,
-        hackathon_context=payload.hackathon_context,
-        participant_name=payload.participant_name,
-        mode=payload.mode,
-        parent_session_id=payload.parent_session_id,
-    )
+    try:
+        return start_interview(
+            db=db,
+            analysis=analysis,
+            count=payload.question_count,
+            assessment_type=payload.assessment_type,
+            scope_type=payload.scope_type,
+            selected_components=payload.selected_components,
+            difficulty=payload.difficulty,
+            hackathon_mode=payload.hackathon_mode,
+            hackathon_context=payload.hackathon_context,
+            participant_name=payload.participant_name,
+            mode=payload.mode,
+            parent_session_id=payload.parent_session_id,
+            allow_shorter=payload.allow_shorter,
+        )
+    except InsufficientQuestionsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "insufficient_questions",
+                "error": "insufficient_questions",
+                "requested_count": exc.requested_count,
+                "available_count": exc.available_count,
+                "message": exc.message,
+                "suggested_actions": [
+                    "proceed_with_available",
+                    "select_broader_scope",
+                    "adjust_difficulty",
+                ],
+            },
+        )
 
 
 @router.get("/analysis/{analysis_id}/history")

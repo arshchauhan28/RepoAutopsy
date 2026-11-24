@@ -270,6 +270,7 @@ export type AssessmentSession = {
   selected_components?: string[] | null
   difficulty: 'beginner' | 'intermediate' | 'advanced'
   question_count: number
+  requested_question_count?: number
   evaluation_mode: string
   category_scores?: Record<string, number> | null
   participant_name?: string | null
@@ -294,6 +295,7 @@ export type TeamMemberSlot = {
   assigned_components: string[]
   difficulty: string
   question_count: number
+  requested_question_count?: number
   status?: string
   score?: number | null
   category_scores?: Record<string, number> | null
@@ -378,7 +380,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     cache: 'no-store',
   })
   const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`)
+  if (!response.ok) {
+    const errorMsg =
+      typeof data.detail === 'string'
+        ? data.detail
+        : data.detail?.message || data.message || `Request failed (${response.status})`
+    const error: any = new Error(errorMsg)
+    error.status = response.status
+    error.detail = data.detail
+    throw error
+  }
   return data
 }
 

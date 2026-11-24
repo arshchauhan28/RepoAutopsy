@@ -10,6 +10,7 @@ class StartInterviewRequest(BaseModel):
     difficulty: str = Field(default="intermediate")  # "beginner" | "intermediate" | "advanced"
     hackathon_mode: bool = False
     hackathon_context: dict[str, Any] | None = None
+    allow_shorter: bool = False
 
 
 class StartAssessmentRequest(BaseModel):
@@ -23,6 +24,20 @@ class StartAssessmentRequest(BaseModel):
     participant_name: str | None = None
     mode: str = "assessment"  # "assessment" | "practice"
     parent_session_id: str | None = None
+    allow_shorter: bool = False
+
+
+class InsufficientQuestionsDetail(BaseModel):
+    status: str = "insufficient_questions"
+    error: str = "insufficient_questions"
+    requested_count: int
+    available_count: int
+    message: str
+    suggested_actions: list[str] = [
+        "proceed_with_available",
+        "select_broader_scope",
+        "adjust_difficulty",
+    ]
 
 
 class AnswerRequest(BaseModel):
@@ -87,6 +102,7 @@ class InterviewOut(BaseModel):
     selected_components: list[str] | None = None
     difficulty: str = "intermediate"
     question_count: int = 10
+    requested_question_count: int = 10
     evaluation_mode: str = "deterministic"
     category_scores: dict[str, Any] | None = None
     participant_name: str | None = None

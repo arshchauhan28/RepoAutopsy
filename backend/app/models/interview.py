@@ -23,6 +23,7 @@ class InterviewSession(Base):
     selected_components: Mapped[list | None] = mapped_column(JSON, nullable=True)
     difficulty: Mapped[str] = mapped_column(String(20), default="intermediate")  # beginner, intermediate, advanced
     question_count: Mapped[int] = mapped_column(Integer, default=10)
+    requested_question_count: Mapped[int] = mapped_column(Integer, default=10)
     evaluation_mode: Mapped[str] = mapped_column(String(30), default="deterministic")  # ai, deterministic
     category_scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     participant_name: Mapped[str | None] = mapped_column(String(100), nullable=True)

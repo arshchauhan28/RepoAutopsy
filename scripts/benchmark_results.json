@@ -1,0 +1,110 @@
+{
+  "timestamp": "2026-11-24T19:29:49.385699",
+  "success_rate": 100.0,
+  "total_requested": 90,
+  "total_delivered": 90,
+  "results": [
+    {
+      "test_case": "Complete Scope - 10 Questions",
+      "requested": 10,
+      "delivered": 10,
+      "exact_match": true,
+      "valid_rate": "100.0%",
+      "uniqueness_rate": "100.0%",
+      "formats_count": 4,
+      "formats": [
+        "code_understanding",
+        "multiple_choice",
+        "scenario",
+        "short_answer"
+      ],
+      "categories_count": 2,
+      "elapsed_ms": 1.01
+    },
+    {
+      "test_case": "Complete Scope - 20 Questions",
+      "requested": 20,
+      "delivered": 20,
+      "exact_match": true,
+      "valid_rate": "100.0%",
+      "uniqueness_rate": "100.0%",
+      "formats_count": 4,
+      "formats": [
+        "code_understanding",
+        "multiple_choice",
+        "scenario",
+        "short_answer"
+      ],
+      "categories_count": 4,
+      "elapsed_ms": 1.01
+    },
+    {
+      "test_case": "Complete Scope - 30 Questions",
+      "requested": 30,
+      "delivered": 30,
+      "exact_match": true,
+      "valid_rate": "100.0%",
+      "uniqueness_rate": "100.0%",
+      "formats_count": 4,
+      "formats": [
+        "code_understanding",
+        "multiple_choice",
+        "scenario",
+        "short_answer"
+      ],
+      "categories_count": 4,
+      "elapsed_ms": 0.99
+    },
+    {
+      "test_case": "Component Scope - 5 Questions",
+      "requested": 5,
+      "delivered": 5,
+      "exact_match": true,
+      "valid_rate": "100.0%",
+      "uniqueness_rate": "100.0%",
+      "formats_count": 4,
+      "formats": [
+        "code_understanding",
+        "multiple_choice",
+        "scenario",
+        "short_answer"
+      ],
+      "categories_count": 2,
+      "elapsed_ms": 1.02
+    },
+    {
+      "test_case": "Component Scope - 10 Questions",
+      "requested": 10,
+      "delivered": 10,
+      "exact_match": true,
+      "valid_rate": "100.0%",
+      "uniqueness_rate": "100.0%",
+      "formats_count": 4,
+      "formats": [
+        "code_understanding",
+        "multiple_choice",
+        "scenario",
+        "short_answer"
+      ],
+      "categories_count": 4,
+      "elapsed_ms": 1.0
+    },
+    {
+      "test_case": "Component Scope - 15 Questions",
+      "requested": 15,
+      "delivered": 15,
+      "exact_match": true,
+      "valid_rate": "100.0%",
+      "uniqueness_rate": "100.0%",
+      "formats_count": 4,
+      "formats": [
+        "code_understanding",
+        "multiple_choice",
+        "scenario",
+        "short_answer"
+      ],
+      "categories_count": 5,
+      "elapsed_ms": 0.0
+    }
+  ]
+}

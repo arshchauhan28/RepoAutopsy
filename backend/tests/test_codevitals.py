@@ -108,7 +108,7 @@ def test_complete_codebase_question_generation():
         assert "question" in q
         assert "category" in q
         assert "difficulty" in q
-        assert q["question_type"] in {"multiple_choice", "short_answer", "scenario", "code_interpretation"}
+        assert q["question_type"] in {"multiple_choice", "short_answer", "scenario", "code_interpretation", "code_understanding"}
 
 
 def test_component_scoped_question_generation():

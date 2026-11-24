@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, BrainCircuit, Loader2, RefreshCw } from 'lucide-react'
+import { ArrowLeft, BrainCircuit, Loader2, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Nav } from '@/components/Nav'
 import { CodeVitalsLanding } from '@/components/codevitals/CodeVitalsLanding'
 import { CompleteAssessmentConfig } from '@/components/codevitals/CompleteAssessmentConfig'
@@ -48,6 +48,12 @@ export function CodeVitalsView() {
   const [loading, setLoading] = useState(true)
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState('')
+  const [insufficientPrompt, setInsufficientPrompt] = useState<{
+    requestedCount: number
+    availableCount: number
+    message: string
+    configPayload: any
+  } | null>(null)
 
   const refreshHistoryAndTeams = useCallback(async (analysisId: string) => {
     try {
@@ -161,14 +167,16 @@ export function CodeVitalsView() {
     if (!analysis) return
     setStarting(true)
     setError('')
+    setInsufficientPrompt(null)
+    const payload = {
+      assessment_type: 'complete',
+      scope_type: 'complete',
+      question_count: config.questionCount,
+      difficulty: config.difficulty,
+      participant_name: config.participantName || undefined,
+    }
     try {
-      const session = await startAssessment(analysis.id, {
-        assessment_type: 'complete',
-        scope_type: 'complete',
-        question_count: config.questionCount,
-        difficulty: config.difficulty,
-        participant_name: config.participantName || undefined,
-      })
+      const session = await startAssessment(analysis.id, payload)
       setCurrentSession(session)
       if (typeof window !== 'undefined') {
         localStorage.setItem(`repoautopsy-codevitals-${analysis.id}`, session.id)
@@ -178,6 +186,19 @@ export function CodeVitalsView() {
       }
       setView('runner')
     } catch (err: any) {
+      if (err?.detail?.status === 'insufficient_questions') {
+        setInsufficientPrompt({
+          requestedCount: err.detail.requested_count,
+          availableCount: err.detail.available_count,
+          message: err.detail.message,
+          configPayload: {
+            ...payload,
+            allow_shorter: true,
+            question_count: err.detail.available_count,
+          },
+        })
+        return
+      }
       setError(err?.message || 'Failed to generate Complete Codebase assessment')
     } finally {
       setStarting(false)
@@ -194,15 +215,17 @@ export function CodeVitalsView() {
     if (!analysis) return
     setStarting(true)
     setError('')
+    setInsufficientPrompt(null)
+    const payload = {
+      assessment_type: 'component',
+      scope_type: 'component',
+      selected_components: config.selectedComponents,
+      question_count: config.questionCount,
+      difficulty: config.difficulty,
+      participant_name: config.participantName || undefined,
+    }
     try {
-      const session = await startAssessment(analysis.id, {
-        assessment_type: 'component',
-        scope_type: 'component',
-        selected_components: config.selectedComponents,
-        question_count: config.questionCount,
-        difficulty: config.difficulty,
-        participant_name: config.participantName || undefined,
-      })
+      const session = await startAssessment(analysis.id, payload)
       setCurrentSession(session)
       if (typeof window !== 'undefined') {
         localStorage.setItem(`repoautopsy-codevitals-${analysis.id}`, session.id)
@@ -212,7 +235,43 @@ export function CodeVitalsView() {
       }
       setView('runner')
     } catch (err: any) {
+      if (err?.detail?.status === 'insufficient_questions') {
+        setInsufficientPrompt({
+          requestedCount: err.detail.requested_count,
+          availableCount: err.detail.available_count,
+          message: err.detail.message,
+          configPayload: {
+            ...payload,
+            allow_shorter: true,
+            question_count: err.detail.available_count,
+          },
+        })
+        return
+      }
       setError(err?.message || 'Failed to generate Component assessment')
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  // Handle Proceeding with Available Verified Questions
+  const handleProceedWithAvailable = async () => {
+    if (!analysis || !insufficientPrompt) return
+    setStarting(true)
+    setError('')
+    try {
+      const session = await startAssessment(analysis.id, insufficientPrompt.configPayload)
+      setCurrentSession(session)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`repoautopsy-codevitals-${analysis.id}`, session.id)
+        if (session.session_token) {
+          localStorage.setItem(`repoautopsy-session-token-${session.id}`, session.session_token)
+        }
+      }
+      setInsufficientPrompt(null)
+      setView('runner')
+    } catch (err: any) {
+      setError(err?.message || 'Failed to start assessment with available questions')
     } finally {
       setStarting(false)
     }
@@ -423,6 +482,44 @@ export function CodeVitalsView() {
             />
           )}
         </div>
+
+        {/* INSUFFICIENT EVIDENCE MODAL */}
+        {insufficientPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="card max-w-md w-full p-6 border border-amber-400/30 bg-[#121214] shadow-2xl space-y-4">
+              <div className="flex items-center gap-2.5 text-amber-400 font-bold text-sm">
+                <AlertTriangle size={18} className="shrink-0" />
+                <span>Evidence Limitation Discovered</span>
+              </div>
+              <p className="text-xs text-[#dcd8d0] leading-relaxed">
+                {insufficientPrompt.message}
+              </p>
+              <div className="p-3 rounded bg-white/[.03] border border-white/[.08] text-[11px] text-[#aaa69e] space-y-1">
+                <div>Requested: <strong className="text-white">{insufficientPrompt.requestedCount} questions</strong></div>
+                <div>Verified Evidence: <strong className="text-amber-400">{insufficientPrompt.availableCount} questions</strong></div>
+                <div className="text-[10px] text-[#8e8a82] mt-1">RepoAutopsy guarantees factual grounding and never hallucinates generic programming trivia or fictional files to reach quotas.</div>
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setInsufficientPrompt(null)}
+                  className="px-3 py-1.5 rounded text-xs text-[#aaa69e] hover:text-white border border-white/[.1] transition"
+                >
+                  Adjust Options
+                </button>
+                <button
+                  type="button"
+                  disabled={starting}
+                  onClick={handleProceedWithAvailable}
+                  className="px-3.5 py-1.5 rounded text-xs font-bold bg-amber-400 text-black hover:bg-amber-300 transition flex items-center gap-1.5"
+                >
+                  {starting ? <Loader2 size={13} className="animate-spin" /> : null}
+                  <span>Proceed with {insufficientPrompt.availableCount} Qs</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

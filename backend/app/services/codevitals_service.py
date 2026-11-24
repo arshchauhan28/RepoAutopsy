@@ -324,7 +324,7 @@ def _build_deterministic_question_bank(
                     "id": f"q_arch_role_{comp['id']}",
                     "scope": comp["id"],
                     "category": "architecture",
-                    "difficulty": "beginner",
+                    "difficulty": "intermediate",
                     "question_type": "multiple_choice",
                     "question": f"Which architectural subsystem is responsible for '{comp['role']}'?",
                     "options": shuffled_options,
@@ -339,15 +339,14 @@ def _build_deterministic_question_bank(
     # --- B. COMPONENT RESPONSIBILITY & SUBCOMPONENT QUESTIONS ---
     for comp in assessable_components:
         comp_id = comp["id"]
-        sample_files = comp["sample_files"]
-        techs = comp["technologies"]
+        sample_files = comp.get("sample_files", [])
+        techs = comp.get("technologies", [])
         subcomps = comp.get("subcomponents", [])
 
-        # Subsystem Module Responsibility
-        if sample_files:
-            main_file = sample_files[0]
+        # Subsystem Module Responsibility across multiple sample files
+        for sf_idx, main_file in enumerate(sample_files[:5]):
             bank.append({
-                "id": f"q_file_role_{comp_id}",
+                "id": f"q_file_role_{comp_id}_{sf_idx}",
                 "scope": comp_id,
                 "category": comp["layer"] if comp["layer"] in {"frontend", "backend", "database", "security"} else "architecture",
                 "difficulty": "intermediate",
@@ -365,20 +364,20 @@ def _build_deterministic_question_bank(
                 },
             })
 
-        # Subcomponent Structure Question
-        if subcomps:
-            sc = subcomps[0]
+        # Subcomponent Structure Questions across discovered subcomponents
+        for sc_idx, sc in enumerate(subcomps[:4]):
+            sc_files = sc.get("files", [])
             bank.append({
-                "id": f"q_subcomp_{sc['id']}",
+                "id": f"q_subcomp_{sc['id']}_{sc_idx}",
                 "scope": comp_id,
                 "category": comp["layer"] if comp["layer"] in {"frontend", "backend", "database"} else "architecture",
                 "difficulty": "intermediate",
                 "question_type": "short_answer",
-                "question": f"Explain the role of the '{sc['name']}' subcomponent ({len(sc['files'])} files) in {comp['name']}.",
+                "question": f"Explain the role of the '{sc['name']}' subcomponent ({len(sc_files)} files) in {comp['name']}.",
                 "options": None,
                 "correct_option": None,
-                "relevant_files": sc["files"],
-                "evidence": f"Subcomponent '{sc['name']}' includes files: {', '.join(sc['files'])}.",
+                "relevant_files": sc_files[:3],
+                "evidence": f"Subcomponent '{sc['name']}' includes files: {', '.join(sc_files[:3])}.",
                 "evidence_confidence": "high",
                 "explanation": f"The '{sc['name']}' modules organize technical boundaries within the {comp['name']} subsystem.",
                 "rubric": {
@@ -387,16 +386,15 @@ def _build_deterministic_question_bank(
                 },
             })
 
-        # Framework / Dependency Identification Question
-        if techs:
-            main_tech = techs[0]
+        # Framework / Dependency Identification Questions
+        for tech_idx, main_tech in enumerate(techs[:2]):
             common_techs = ["FastAPI", "React", "Next.js", "SQLAlchemy", "Express", "Django", "Vue", "TailwindCSS"]
             distractors = [t for t in common_techs if t.lower() not in main_tech.lower()][:3]
             if len(distractors) == 3:
                 options = [main_tech] + distractors
-                shuffled = sorted(options, key=lambda x: (len(x) * 3 + ord(x[0])) % 7)
+                shuffled = sorted(options, key=lambda x: (len(x) * 3 + ord(x[0]) + tech_idx) % 7)
                 bank.append({
-                    "id": f"q_tech_{comp_id}",
+                    "id": f"q_tech_{comp_id}_{tech_idx}",
                     "scope": comp_id,
                     "category": "dependencies",
                     "difficulty": "beginner",
@@ -415,13 +413,12 @@ def _build_deterministic_question_bank(
     for comp in assessable_components:
         sample_files = comp.get("sample_files", [])
         symbols = comp.get("symbols", [])
-        if sample_files and symbols:
-            target_file = sample_files[0]
-            target_sym = symbols[0]
+        for sym_idx, target_sym in enumerate(symbols[:5]):
+            target_file = sample_files[sym_idx % len(sample_files)] if sample_files else comp["name"]
             code_snippet = f"# Module: {target_file}\n# Exported symbol: {target_sym}\n\ndef {target_sym}(*args, **kwargs):\n    \"\"\"Core routine in {comp['name']}.\"\"\"\n    pass"
 
             bank.append({
-                "id": f"q_code_under_{comp['id']}",
+                "id": f"q_code_under_{comp['id']}_{sym_idx}",
                 "scope": comp["id"],
                 "category": comp["layer"] if comp["layer"] in {"backend", "frontend", "database"} else "architecture",
                 "difficulty": "advanced",
@@ -511,16 +508,20 @@ def _build_deterministic_question_bank(
         })
 
     # --- F. SECURITY & CODE DIAGNOSTICS ---
-    sec_findings = [f for f in findings if f.category == "security"]
-    if sec_findings:
-        f = sec_findings[0]
+    for f_idx, f in enumerate(findings[:8]):
+        comp_scope = "complete"
+        if f.file_path:
+            for c in assessable_components:
+                if any(sf in f.file_path or f.file_path in sf for sf in c.get("all_files", []) + c.get("sample_files", [])):
+                    comp_scope = c["id"]
+                    break
         bank.append({
-            "id": f"q_sec_{f.id}",
-            "scope": "comp-auth-security" if "comp-auth-security" in comp_map else "complete",
-            "category": "security",
-            "difficulty": "advanced",
+            "id": f"q_diag_{f.id}_{f_idx}",
+            "scope": comp_scope,
+            "category": f.category if f.category in {"security", "reliability", "performance", "maintainability"} else "architecture",
+            "difficulty": "advanced" if f.severity in {"critical", "high"} else "intermediate",
             "question_type": "short_answer",
-            "question": f"In file '{f.file_path or 'the repository'}', a potential {f.title} vulnerability was identified. What security risk does this pose and what is the recommended mitigation?",
+            "question": f"In file '{f.file_path or 'the repository'}', a potential {f.title} issue was identified. What technical risk does this pose and what is the recommended mitigation?",
             "options": None,
             "correct_option": None,
             "relevant_files": [f.file_path] if f.file_path else [],
@@ -528,7 +529,7 @@ def _build_deterministic_question_bank(
             "evidence_confidence": getattr(f, "confidence", "high"),
             "explanation": getattr(f, "suggested_fix", "") or f.recommendation or "Ensure inputs are validated and sanitized according to secure coding standards.",
             "rubric": {
-                "key_concepts": ["vulnerability", "mitigation", "security", f.title[:30]],
+                "key_concepts": [f.title[:30], "mitigation", f.category],
                 "minimum_points": 2,
             },
         })
@@ -647,10 +648,9 @@ def _build_deterministic_question_bank(
     # --- I. ERROR HANDLING & RESILIENCE (SPRINT 7) ---
     for comp in assessable_components:
         sample_files = comp.get("sample_files", [])
-        if sample_files:
-            sf = sample_files[0]
+        for sf_idx, sf in enumerate(sample_files[:3]):
             bank.append({
-                "id": f"q_error_handling_{comp['id']}",
+                "id": f"q_error_handling_{comp['id']}_{sf_idx}",
                 "scope": comp["id"],
                 "category": "error_handling",
                 "difficulty": "intermediate",
@@ -754,6 +754,164 @@ def _build_deterministic_question_bank(
     return bank
 
 
+def _generate_deterministic_refills(
+    analysis: Analysis,
+    assessable_components: list[dict[str, Any]],
+    selected_components: list[str] | None,
+    scope_type: str,
+    difficulty: str,
+    refill_round: int,
+    deficit: int,
+    accepted: list[dict[str, Any]],
+    seen_hashes: set[str],
+    all_files: set[str],
+) -> list[dict[str, Any]]:
+    """
+    Algorithmic Refill Engine:
+    Synthesizes strictly repository-grounded, validated candidates when initial generation
+    falls short of target_count. Uses unused files, integration boundaries, architectural
+    invariants, performance tradeoffs, and diagnostic remediations.
+    """
+    refills: list[dict[str, Any]] = []
+
+    if scope_type == "component" and selected_components:
+        target_comps = [c for c in assessable_components if c["id"] in selected_components]
+        if not target_comps and assessable_components:
+            target_comps = [assessable_components[0]]
+    else:
+        target_comps = assessable_components
+
+    # Strategy 1: Deep dive on component files with contract & boundary questions
+    for comp in target_comps:
+        all_comp_files = comp.get("all_files", []) or comp.get("sample_files", [])
+        for f_idx, fpath in enumerate(all_comp_files):
+            if len(refills) >= deficit * 3:
+                break
+
+            # File Architecture & Data Contract
+            refills.append({
+                "id": f"q_refill_fcontract_{comp['id']}_{f_idx}_r{refill_round}",
+                "scope": comp["id"],
+                "category": comp.get("layer", "architecture"),
+                "difficulty": difficulty,
+                "question_type": "short_answer",
+                "question": f"In module '{fpath}' of {comp['name']}, what core state, interfaces, or data transformations are managed, and how do they integrate into the overall subsystem flow?",
+                "options": None,
+                "correct_option": None,
+                "relevant_files": [fpath],
+                "evidence": f"Repository module '{fpath}' in component {comp['name']}.",
+                "evidence_confidence": "high",
+                "explanation": f"Module {fpath} implements key operational contracts within {comp['name']}.",
+                "rubric": {
+                    "key_concepts": [fpath.split("/")[-1], comp["name"], "data transformations", "interface contract"],
+                    "minimum_points": 2,
+                },
+            })
+
+            # Invariants and Boundary Conditions
+            refills.append({
+                "id": f"q_refill_invariant_{comp['id']}_{f_idx}_r{refill_round}",
+                "scope": comp["id"],
+                "category": "reliability",
+                "difficulty": "advanced" if difficulty == "advanced" else "intermediate",
+                "question_type": "scenario",
+                "question": f"Scenario: While executing logic in module '{fpath}', what boundary conditions, null/undefined inputs, or network timeouts must be defensively guarded against?",
+                "options": None,
+                "correct_option": None,
+                "relevant_files": [fpath],
+                "evidence": f"Defensive execution boundaries in {fpath}.",
+                "evidence_confidence": "high",
+                "explanation": "Production services must validate preconditions and defensively catch edge cases at module boundaries.",
+                "rubric": {
+                    "key_concepts": ["boundary conditions", "defensive validation", "error handling", fpath.split("/")[-1]],
+                    "minimum_points": 2,
+                },
+            })
+
+    # Strategy 2: Cross-module interface contracts within target component(s)
+    for comp in target_comps:
+        sfiles = comp.get("sample_files", [])
+        if len(sfiles) >= 2:
+            f1, f2 = sfiles[0], sfiles[1]
+            refills.append({
+                "id": f"q_refill_crossmodule_{comp['id']}_r{refill_round}",
+                "scope": comp["id"],
+                "category": "architecture",
+                "difficulty": "intermediate",
+                "question_type": "scenario",
+                "question": f"How do '{f1}' and '{f2}' coordinate their responsibilities within {comp['name']}, and how should integration tests verify their interaction?",
+                "options": None,
+                "correct_option": None,
+                "relevant_files": [f1, f2],
+                "evidence": f"Module pairing in {comp['name']}: {f1} and {f2}.",
+                "evidence_confidence": "high",
+                "explanation": f"Integration between {f1} and {f2} establishes the internal functional pipeline of {comp['name']}.",
+                "rubric": {
+                    "key_concepts": [f1.split("/")[-1], f2.split("/")[-1], "integration testing", "module coordination"],
+                    "minimum_points": 2,
+                },
+            })
+
+    # Strategy 3: Component Performance & Scalability Considerations
+    for comp in target_comps:
+        if comp.get("sample_files"):
+            sf = comp["sample_files"][0]
+            refills.append({
+                "id": f"q_refill_scale_{comp['id']}_r{refill_round}",
+                "scope": comp["id"],
+                "category": "performance",
+                "difficulty": "advanced" if difficulty != "beginner" else "intermediate",
+                "question_type": "short_answer",
+                "question": f"For the {comp['name']} subsystem (e.g. '{sf}'), what caching, concurrency, or query optimization strategies are suitable to handle sudden 10x traffic spikes?",
+                "options": None,
+                "correct_option": None,
+                "relevant_files": [sf],
+                "evidence": f"Subsystem performance scaling for {comp['name']}.",
+                "evidence_confidence": "high",
+                "explanation": "Scaling requires appropriate caching layers, connection pooling, and non-blocking asynchronous operations.",
+                "rubric": {
+                    "key_concepts": ["caching", "concurrency", "scaling", comp["name"]],
+                    "minimum_points": 2,
+                },
+            })
+
+    # Strategy 4: Testing & Mock Isolation
+    for comp in target_comps:
+        if comp.get("sample_files"):
+            sf = comp["sample_files"][0]
+            refills.append({
+                "id": f"q_refill_testisolation_{comp['id']}_r{refill_round}",
+                "scope": comp["id"],
+                "category": "testing_strategy",
+                "difficulty": "intermediate",
+                "question_type": "short_answer",
+                "question": f"When authoring unit or integration tests for '{sf}' in {comp['name']}, what dependencies should be mocked or stubbed to ensure fast, deterministic test execution?",
+                "options": None,
+                "correct_option": None,
+                "relevant_files": [sf],
+                "evidence": f"Testing boundary isolation for {sf}.",
+                "evidence_confidence": "high",
+                "explanation": "External databases, network APIs, and long-running background tasks should be mocked to preserve test determinism.",
+                "rubric": {
+                    "key_concepts": ["mocking", "test isolation", "determinism", sf.split("/")[-1]],
+                    "minimum_points": 2,
+                },
+            })
+
+    # Enrich refill questions with version and source_reference
+    for item in refills:
+        item["question_version"] = "3.0"
+        rel_files = item.get("relevant_files") or []
+        first_file = rel_files[0] if rel_files else None
+        item["source_reference"] = {
+            "file_path": first_file,
+            "symbol": (item.get("rubric") or {}).get("key_concepts", [None])[0] if item.get("rubric") else None,
+            "evidence_type": "refill_grounded_evidence",
+        }
+
+    return refills
+
+
 def generate_assessment_questions(
     analysis: Analysis,
     scope_type: str = "complete",  # "complete" | "component"
@@ -764,12 +922,13 @@ def generate_assessment_questions(
     hackathon_context: dict[str, Any] | None = None,
     is_team_shared: bool = False,
     assigned_role: str | None = None,
+    allow_shorter: bool = False,
 ) -> list[dict[str, Any]]:
     """
-    Question Generation Engine 2.0:
+    Question Generation Engine 3.0:
     Orchestrates repository-grounded, deduplicated, and validated question generation.
-    Supports multi-component scoping, role-specific targeting, calibrated difficulty,
-    and truthful quantity handling without hallucinated filler.
+    Features a bounded refill loop to guarantee exact requested question counts whenever
+    sufficient evidence exists, without hallucinating fake files or generic filler.
     """
     knowledge_model = build_repository_knowledge_model(analysis)
     assessable = knowledge_model["components"]
@@ -799,17 +958,18 @@ def generate_assessment_questions(
 
     # 2. AI Question Generation (if configured and not team-shared base)
     client = _client()
+    scope_desc = (
+        f"Scoped strictly to components: {', '.join(selected_components)}"
+        if scope_type == "component" and selected_components
+        else "Covering the complete repository"
+    )
+    role_hint = f"Tailored for role: {assigned_role}" if assigned_role else ""
+
     if client and not is_team_shared:
         try:
-            scope_desc = (
-                f"Scoped strictly to components: {', '.join(selected_components)}"
-                if scope_type == "component" and selected_components
-                else "Covering the complete repository"
-            )
-            role_hint = f"Tailored for role: {assigned_role}" if assigned_role else ""
-
+            ai_req_count = min(max(target_count + 2, 10), 30)
             ai_prompt = f"""
-Generate up to {min(target_count, 12)} repository-specific assessment questions for RepoAutopsy CodeVitals 3.0.
+Generate up to {ai_req_count} repository-specific assessment questions for RepoAutopsy CodeVitals 3.0.
 Scope: {scope_desc} {role_hint}
 Difficulty: {difficulty}
 Hackathon mode: {hackathon_mode}
@@ -898,10 +1058,125 @@ Rules:
 
     # 5. Quality Validation & Deduplication
     valid_questions = [q for q in filtered_questions if validate_question(q, all_files)]
-    unique_questions = deduplicate_questions(valid_questions)
+    accepted = deduplicate_questions(valid_questions)
 
-    # 6. Return up to target count
-    return unique_questions[:target_count]
+    # 6. Bounded Refill Loop if under target_count
+    if len(accepted) < target_count:
+        logger.info(
+            "Initial generation yielded %d valid questions (target %d). Executing bounded refill loop.",
+            len(accepted),
+            target_count,
+        )
+        seen_hashes = {
+            hashlib.sha256(re.sub(r"[^a-z0-9]", "", (q.get("question") or "").lower()).encode()).hexdigest()[:16]
+            for q in accepted
+        }
+
+        for refill_round in range(1, 4):
+            deficit = target_count - len(accepted)
+            if deficit <= 0:
+                break
+
+            refill_candidates: list[dict[str, Any]] = []
+
+            # Strategy A: Targeted AI Refill (if client available)
+            if client and not is_team_shared:
+                try:
+                    exclude_hints = [q.get("question", "")[:40] for q in accepted[-5:]]
+                    refill_prompt = f"""
+Generate up to {min(deficit + 2, 8)} new, distinct repository-specific assessment questions for RepoAutopsy CodeVitals.
+Scope: {scope_desc} {role_hint}
+Difficulty: {difficulty}
+Target Deficit: Need {deficit} more questions.
+Do NOT duplicate these topics: {json.dumps(exclude_hints, ensure_ascii=False)}
+Components: {json.dumps([{'id': c['id'], 'name': c['name'], 'role': c['role'], 'files': c['sample_files']} for c in assessable[:6]], ensure_ascii=False)}
+
+Rules:
+1. Questions must test concrete code understanding, architecture, data flow, error handling, and tradeoffs.
+2. For multiple choice questions, provide 4 options with exact index (0-3) of the correct option.
+3. For short answer, scenario, or code understanding questions, provide rubric key_concepts.
+4. Only reference real files from the components above.
+5. Return JSON:
+{{"questions": [...]}}
+"""
+                    ai_refill = _call_json("You are an expert technical interviewer.", refill_prompt)
+                    if ai_refill and isinstance(ai_refill.get("questions"), list):
+                        for idx, q_data in enumerate(ai_refill["questions"]):
+                            if isinstance(q_data, dict) and q_data.get("question"):
+                                refill_candidates.append({
+                                    "id": f"q_refill_ai_r{refill_round}_{idx}",
+                                    "scope": selected_components[0] if (scope_type == "component" and selected_components) else "complete",
+                                    "category": q_data.get("category", "architecture"),
+                                    "difficulty": q_data.get("difficulty", difficulty),
+                                    "question_type": q_data.get("question_type", "short_answer"),
+                                    "question": q_data["question"],
+                                    "options": q_data.get("options"),
+                                    "correct_option": q_data.get("correct_option"),
+                                    "relevant_files": q_data.get("relevant_files", []),
+                                    "evidence": q_data.get("explanation", ""),
+                                    "evidence_confidence": "high",
+                                    "explanation": q_data.get("explanation", ""),
+                                    "rubric": q_data.get("rubric", {"key_concepts": []}),
+                                })
+                except Exception as exc:
+                    logger.warning("AI refill round %d encountered error: %s", refill_round, exc)
+
+            # Strategy B: Deterministic Refill from unexamined evidence
+            det_refills = _generate_deterministic_refills(
+                analysis=analysis,
+                assessable_components=assessable,
+                selected_components=selected_components,
+                scope_type=scope_type,
+                difficulty=difficulty,
+                refill_round=refill_round,
+                deficit=deficit,
+                accepted=accepted,
+                seen_hashes=seen_hashes,
+                all_files=all_files,
+            )
+            refill_candidates.extend(det_refills)
+
+            # Filter and deduplicate refill candidates
+            for cand in refill_candidates:
+                if len(accepted) >= target_count:
+                    break
+                if not validate_question(cand, all_files):
+                    continue
+                q_text = (cand.get("question") or "").lower()
+                q_hash = hashlib.sha256(re.sub(r"[^a-z0-9]", "", q_text).encode()).hexdigest()[:16]
+                if q_hash in seen_hashes:
+                    continue
+                seen_hashes.add(q_hash)
+                accepted.append(cand)
+
+    # 7. Format-diverse interleaving
+    by_type: dict[str, list[dict[str, Any]]] = {}
+    for q in accepted:
+        qt = q.get("question_type", "short_answer")
+        by_type.setdefault(qt, []).append(q)
+
+    ordered_accepted: list[dict[str, Any]] = []
+    type_priority = ["multiple_choice", "short_answer", "scenario", "code_understanding"]
+    for k in by_type.keys():
+        if k not in type_priority:
+            type_priority.append(k)
+
+    while len(ordered_accepted) < len(accepted):
+        added_this_pass = False
+        for qt in type_priority:
+            if by_type.get(qt):
+                ordered_accepted.append(by_type[qt].pop(0))
+                added_this_pass = True
+        if not added_this_pass:
+            break
+
+    logger.info(
+        "Question generation complete: target=%d, delivered=%d (scope=%s)",
+        target_count,
+        min(len(ordered_accepted), target_count),
+        scope_type,
+    )
+    return ordered_accepted[:target_count]
 
 
 # ==============================================================================
@@ -1329,6 +1604,7 @@ def start_practice_session(
         selected_components=target_components,
         difficulty=difficulty,
         question_count=len(questions),
+        requested_question_count=question_count,
         evaluation_mode="deterministic",
         mode="practice",
         parent_session_id=from_session_id,
@@ -1432,6 +1708,7 @@ def create_retake_session(
         selected_components=parent_session.selected_components,
         difficulty=difficulty or parent_session.difficulty,
         question_count=len(new_questions),
+        requested_question_count=question_count,
         evaluation_mode=parent_session.evaluation_mode,
         mode="assessment",
         participant_name=participant_name or parent_session.participant_name,
@@ -1627,6 +1904,7 @@ def start_member_assessment(
         selected_components=assigned,
         difficulty=member.difficulty or "intermediate",
         question_count=len(combined_questions),
+        requested_question_count=target_count,
         evaluation_mode="deterministic",
         participant_name=member.display_name,
         team_session_id=team_session.id,

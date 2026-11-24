@@ -66,6 +66,7 @@ def init_db():
                     ("selected_components", "JSON"),
                     ("difficulty", "VARCHAR(20) DEFAULT 'intermediate'"),
                     ("question_count", "INTEGER DEFAULT 10"),
+                    ("requested_question_count", "INTEGER DEFAULT 10"),
                     ("evaluation_mode", "VARCHAR(30) DEFAULT 'deterministic'"),
                     ("category_scores", "JSON"),
                     ("participant_name", "VARCHAR(100)"),

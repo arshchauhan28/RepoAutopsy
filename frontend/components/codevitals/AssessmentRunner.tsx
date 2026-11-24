@@ -259,6 +259,11 @@ export function AssessmentRunner({ session: initialSession, onCompleted, onExit 
             <span className="font-mono text-[11px] font-bold text-amber-400">
               Question {currentIndex + 1} of {turns.length}
             </span>
+            {session.requested_question_count && session.requested_question_count !== turns.length && (
+              <span className="font-mono text-[10px] text-[#8e8a82]">
+                (scope-bounded: {turns.length} of {session.requested_question_count} requested)
+              </span>
+            )}
             <span
               className={`rounded-full border px-2 py-0.2 font-mono text-[9px] uppercase font-bold ${getCategoryColor(
                 currentTurn.category
