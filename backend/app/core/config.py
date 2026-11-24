@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = "sqlite:///./repolens.db"
     frontend_url: str = "http://localhost:3000"
+    backend_url: str | None = None
     github_token: str | None = None
     github_client_id: str | None = None
     github_client_secret: str | None = None

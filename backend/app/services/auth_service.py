@@ -48,20 +48,25 @@ def validate_and_consume_oauth_state(db: Session, state_token: str) -> OAuthStat
     return state
 
 
-def build_github_login_url(state: str) -> str:
+def build_github_login_url(state: str, redirect_uri: str | None = None) -> str:
+    import urllib.parse
     client_id = settings.github_client_id or "repoautopsy-dev-client-id"
-    redirect_uri = f"{settings.frontend_url}/auth/callback"
+    if not redirect_uri:
+        if settings.backend_url:
+            redirect_uri = f"{settings.backend_url.rstrip('/')}/api/v1/auth/github/callback"
+        else:
+            redirect_uri = f"{settings.frontend_url.rstrip('/')}/auth/callback"
     scope = "read:user user:email repo"
-    return (
-        f"https://github.com/login/oauth/authorize"
-        f"?client_id={client_id}"
-        f"&redirect_uri={redirect_uri}"
-        f"&scope={scope}"
-        f"&state={state}"
-    )
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "scope": scope,
+        "state": state,
+    }
+    return f"https://github.com/login/oauth/authorize?{urllib.parse.urlencode(params)}"
 
 
-async def exchange_github_code(code: str) -> str:
+async def exchange_github_code(code: str, redirect_uri: str | None = None) -> str:
     """
     Exchanges OAuth code for access token.
     Falls back to mock token in development / test if client secret is not configured
@@ -83,6 +88,8 @@ async def exchange_github_code(code: str) -> str:
         "client_secret": settings.github_client_secret,
         "code": code,
     }
+    if redirect_uri:
+        payload["redirect_uri"] = redirect_uri
     async with httpx.AsyncClient(timeout=15.0) as client:
         resp = await client.post(url, json=payload, headers=headers)
         resp.raise_for_status()

@@ -2,10 +2,10 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, AlertCircle, ArrowRight } from 'lucide-react'
+import { Loader2, AlertCircle, ArrowRight, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { Nav } from '@/components/Nav'
-import { submitOAuthCallback } from '@/lib/api'
+import { submitOAuthCallback, getGitHubLoginRedirectUrl, API_URL } from '@/lib/api'
 
 function AuthCallbackContent() {
   const router = useRouter()
@@ -14,6 +14,14 @@ function AuthCallbackContent() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // 1. Check for explicit error query parameters from GitHub or Backend redirect
+    const errorParam = searchParams.get('error_description') || searchParams.get('error')
+    if (errorParam) {
+      setError(errorParam)
+      setLoading(false)
+      return
+    }
+
     const code = searchParams.get('code')
     const state = searchParams.get('state')
 
@@ -23,17 +31,41 @@ function AuthCallbackContent() {
       return
     }
 
+    let active = true
+
     const exchange = async () => {
       try {
         await submitOAuthCallback(code, state)
-        router.push('/dashboard')
+        if (active) {
+          router.push('/dashboard')
+        }
       } catch (err: any) {
-        setError(err?.message || 'Authentication exchange failed.')
+        if (!active) return
+        const errMsg = err?.message || 'Authentication exchange failed.'
+        
+        // If client-side cross-site fetch failed or was blocked by third-party cookie policy,
+        // fallback to top-level browser navigation directly to the backend callback endpoint
+        // where first-party backend domain cookies are transmitted reliably.
+        if (
+          errMsg.includes('state cookie') ||
+          errMsg.includes('state verification') ||
+          errMsg.includes('CSRF') ||
+          errMsg.includes('Failed to fetch')
+        ) {
+          const backendCallbackUrl = `${API_URL}/api/v1/auth/github/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
+          window.location.replace(backendCallbackUrl)
+          return
+        }
+
+        setError(errMsg)
         setLoading(false)
       }
     }
 
     exchange()
+    return () => {
+      active = false
+    }
   }, [searchParams, router])
 
   return (
@@ -53,12 +85,19 @@ function AuthCallbackContent() {
           </div>
           <h2 className="text-base font-semibold text-rose-300">Sign-In Failed</h2>
           <p className="text-xs text-[#aaa69e] leading-relaxed">{error}</p>
-          <div className="pt-2">
+          <div className="flex items-center justify-center gap-3 pt-3">
+            <a
+              href={getGitHubLoginRedirectUrl('/dashboard')}
+              className="inline-flex items-center gap-1.5 rounded bg-amber-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-300"
+            >
+              <RefreshCw size={13} />
+              <span>Retry Sign-In</span>
+            </a>
             <Link
               href="/"
               className="inline-flex items-center gap-1.5 rounded border border-white/[.15] bg-white/[.04] px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/[.08]"
             >
-              <span>Return to Home</span>
+              <span>Return Home</span>
               <ArrowRight size={13} />
             </Link>
           </div>

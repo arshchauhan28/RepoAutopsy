@@ -364,7 +364,10 @@ export type TeamInviteInfo = {
   }[]
 }
 
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+export const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== 'undefined' ? '' : 'http://localhost:8000')
+).replace(/\/$/, '')
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
@@ -914,6 +917,17 @@ export type DashboardSummary = {
 // Auth API
 export function getAuthStatus() {
   return request<AuthStatus>('/api/v1/auth/status')
+}
+
+export function getGitHubLoginRedirectUrl(redirectUrl?: string) {
+  const base = (
+    process.env.NEXT_PUBLIC_API_URL ||
+    (typeof window !== 'undefined' ? '' : 'http://localhost:8000')
+  ).replace(/\/$/, '')
+  const path = redirectUrl
+    ? `/api/v1/auth/github/login?redirect_url=${encodeURIComponent(redirectUrl)}`
+    : '/api/v1/auth/github/login'
+  return `${base}${path}`
 }
 
 export function getLoginUrl(redirectUrl?: string) {

@@ -6,7 +6,7 @@ import { Github, Menu, X, ArrowUpRight, LogOut, LayoutDashboard, Building2, User
 import { useState, useEffect } from 'react'
 import { Brand } from './Brand'
 import { NotificationPopover } from './NotificationPopover'
-import { getAuthStatus, getLoginUrl, logout, getUnreadNotificationCount, type User } from '@/lib/api'
+import { getAuthStatus, getGitHubLoginRedirectUrl, getLoginUrl, logout, getUnreadNotificationCount, type User } from '@/lib/api'
 
 export function Nav() {
   const pathname = usePathname()
@@ -60,15 +60,10 @@ export function Nav() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
 
-  const handleSignIn = async () => {
+  const handleSignIn = () => {
     setLoginLoading(true)
-    try {
-      const res = await getLoginUrl(pathname)
-      window.location.href = res.login_url
-    } catch (e: any) {
-      alert(e?.message || 'Failed to initiate GitHub sign-in.')
-      setLoginLoading(false)
-    }
+    const target = pathname && !pathname.startsWith('/auth') ? pathname : '/dashboard'
+    window.location.href = getGitHubLoginRedirectUrl(target)
   }
 
   const handleLogout = async () => {

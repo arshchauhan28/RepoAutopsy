@@ -29,6 +29,8 @@ configured_origins = [
 for local_origin in ("http://localhost:3000", "http://127.0.0.1:3000"):
     if local_origin not in configured_origins:
         configured_origins.append(local_origin)
+if "https://repoautopsy.vercel.app" not in configured_origins:
+    configured_origins.append("https://repoautopsy.vercel.app")
 
 app.add_middleware(
     CORSMiddleware,
